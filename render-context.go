@@ -58,6 +58,8 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 		return
 	}
 
+	ctxMap := ctx.asMap()
+
 	extraFuncs := map[string]interface{}{
 		"static_pods": func(name string) (string, error) {
 			t := ctx.clusterConfig.StaticPodsTemplate(name)
@@ -66,7 +68,7 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 			}
 
 			buf := &bytes.Buffer{}
-			err := t.Execute(buf, ctx, nil)
+			err := t.Execute(buf, ctxMap, nil)
 			if err != nil {
 				log.Printf("host %s: failed to render static pods: %v", ctx.Host.Name, err)
 				return "", err
@@ -77,7 +79,7 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err = ctx.ConfigTemplate.Execute(buf, ctx, extraFuncs); err != nil {
+	if err = ctx.ConfigTemplate.Execute(buf, ctxMap, extraFuncs); err != nil {
 		return
 	}
 
@@ -114,7 +116,7 @@ func (ctx *renderContext) StaticPods() (ba []byte, err error) {
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err = ctx.StaticPodsTemplate.Execute(buf, ctx, nil); err != nil {
+	if err = ctx.StaticPodsTemplate.Execute(buf, ctx.asMap(), nil); err != nil {
 		return
 	}
 
@@ -143,4 +145,24 @@ func (ctx *renderContext) Tag() (string, error) {
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func (ctx *renderContext) asMap() map[string]interface{} {
+	ba, err := yaml.Marshal(ctx)
+	if err != nil {
+		panic(err) // shouldn't happen
+	}
+
+	result := make(map[string]interface{})
+
+	if err := yaml.Unmarshal(ba, result); err != nil {
+		panic(err)
+	}
+
+	// also expand cluster:
+	cluster := result["cluster"].(map[interface{}]interface{})
+	cluster["kubernetes_svc_ip"] = ctx.Cluster.KubernetesSvcIP().String()
+	cluster["dns_svc_ip"] = ctx.Cluster.DNSSvcIP().String()
+
+	return result
 }

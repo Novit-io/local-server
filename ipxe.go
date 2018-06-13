@@ -16,7 +16,7 @@ func renderIPXE(out io.Writer, ctx *renderContext) error {
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err := tmpl.Execute(buf, ctx); err != nil {
+	if err := tmpl.Execute(buf, ctx.asMap()); err != nil {
 		return err
 	}
 
