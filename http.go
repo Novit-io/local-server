@@ -14,10 +14,28 @@ import (
 )
 
 var (
+	hostsToken = flag.String("hosts-token", "", "Token to give to access /hosts (open is none)")
+
 	reHost = regexp.MustCompile("^/hosts/([^/]+)/([^/]+)$")
 
 	trustXFF = flag.Bool("trust-xff", true, "Trust the X-Forwarded-For header")
 )
+
+func authorizeHosts(r *http.Request) bool {
+	if *hostsToken == "" {
+		// access is open
+		return true
+	}
+
+	reqToken := r.Header.Get("Authorization")
+
+	return reqToken == "Bearer "+*hostsToken
+}
+
+func forbidden(w http.ResponseWriter, r *http.Request) {
+	log.Printf("denied access to %s from %s", r.RequestURI, r.RemoteAddr)
+	http.Error(w, "Forbidden", http.StatusForbidden)
+}
 
 func serveHostByIP(w http.ResponseWriter, r *http.Request) {
 	host, cfg := hostByIP(w, r)
@@ -64,6 +82,11 @@ func hostByIP(w http.ResponseWriter, r *http.Request) (*clustersconfig.Host, *cl
 }
 
 func serveHosts(w http.ResponseWriter, r *http.Request) {
+	if !authorizeHosts(r) {
+		forbidden(w, r)
+		return
+	}
+
 	cfg, err := readConfig()
 	if err != nil {
 		http.Error(w, "", http.StatusServiceUnavailable)
@@ -79,6 +102,11 @@ func serveHosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveHost(w http.ResponseWriter, r *http.Request) {
+	if !authorizeHosts(r) {
+		forbidden(w, r)
+		return
+	}
+
 	match := reHost.FindStringSubmatch(r.URL.Path)
 	if match == nil {
 		http.NotFound(w, r)
