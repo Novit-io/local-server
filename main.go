@@ -29,7 +29,6 @@ func main() {
 		log.Fatal("no listen address given")
 	}
 
-	secrets = &SecretsFile{filepath.Join(*dataDir, "secret.yaml")}
 	casStore = cas.NewDir(filepath.Join(*dataDir, "cache"))
 
 	go casCleaner()

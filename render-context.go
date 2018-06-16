@@ -10,8 +10,10 @@ import (
 	"log"
 	"path/filepath"
 
+	cfsslconfig "github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	yaml "gopkg.in/yaml.v2"
+
 	"novit.nc/direktil/pkg/clustersconfig"
 	"novit.nc/direktil/pkg/config"
 )
@@ -63,7 +65,7 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 
 	ctxMap := ctx.asMap()
 
-	sslCfg, err := sslConfig(ctx.clusterConfig)
+	sslCfg, err := cfsslconfig.LoadConfig([]byte(ctx.clusterConfig.SSLConfig))
 	if err != nil {
 		return
 	}
@@ -186,21 +188,6 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 
 	if err = yaml.Unmarshal(buf.Bytes(), cfg); err != nil {
 		return
-	}
-
-	// bind secrets in config
-	for idx, file := range cfg.Files {
-		if file.Secret == "" {
-			continue
-		}
-
-		v, err2 := getSecret(file.Secret, ctx)
-		if err2 != nil {
-			err = err2
-			return
-		}
-
-		cfg.Files[idx].Content = v
 	}
 
 	return
