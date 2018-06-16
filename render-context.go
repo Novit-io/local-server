@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
 
+	"github.com/cloudflare/cfssl/csr"
 	yaml "gopkg.in/yaml.v2"
 	"novit.nc/direktil/pkg/clustersconfig"
 	"novit.nc/direktil/pkg/config"
@@ -60,6 +63,53 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 
 	ctxMap := ctx.asMap()
 
+	sslCfg, err := sslConfig(ctx.clusterConfig)
+	if err != nil {
+		return
+	}
+
+	secretData, err := loadSecretData(sslCfg)
+	if err != nil {
+		return
+	}
+
+	cluster := ctx.Cluster.Name
+
+	getKeyCert := func(name string) (kc *KeyCert, err error) {
+		req := ctx.clusterConfig.CSR(name)
+		if req == nil {
+			err = errors.New("no such certificate request")
+			return
+		}
+
+		if req.CA == "" {
+			err = errors.New("CA not defined")
+			return
+		}
+
+		buf := &bytes.Buffer{}
+		err = req.Execute(buf, ctxMap, nil)
+		if err != nil {
+			return
+		}
+
+		certReq := &csr.CertificateRequest{
+			KeyRequest: csr.NewBasicKeyRequest(),
+		}
+
+		err = json.Unmarshal(buf.Bytes(), certReq)
+		if err != nil {
+			log.Print("unmarshal failed on: ", buf)
+			return
+		}
+
+		if req.PerHost {
+			name = name + "/" + ctx.Host.Name
+		}
+
+		return secretData.KeyCert(cluster, req.CA, name, req.Profile, req.Label, certReq)
+	}
+
 	extraFuncs := map[string]interface{}{
 		"static_pods": func(name string) (string, error) {
 			t := ctx.clusterConfig.StaticPodsTemplate(name)
@@ -76,11 +126,58 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 
 			return buf.String(), nil
 		},
+
+		"ca_key": func(name string) (s string, err error) {
+			ca, err := secretData.CA(cluster, name)
+			if err != nil {
+				return
+			}
+
+			s = string(ca.Key)
+			return
+		},
+
+		"ca_crt": func(name string) (s string, err error) {
+			ca, err := secretData.CA(cluster, name)
+			if err != nil {
+				return
+			}
+
+			s = string(ca.Cert)
+			return
+		},
+
+		"tls_key": func(name string) (s string, err error) {
+			kc, err := getKeyCert(name)
+			if err != nil {
+				return
+			}
+
+			s = string(kc.Key)
+			return
+		},
+
+		"tls_crt": func(name string) (s string, err error) {
+			kc, err := getKeyCert(name)
+			if err != nil {
+				return
+			}
+
+			s = string(kc.Cert)
+			return
+		},
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
 	if err = ctx.ConfigTemplate.Execute(buf, ctxMap, extraFuncs); err != nil {
 		return
+	}
+
+	if secretData.Changed() {
+		err = secretData.Save()
+		if err != nil {
+			return
+		}
 	}
 
 	ba = buf.Bytes()

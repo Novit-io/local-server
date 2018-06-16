@@ -13,6 +13,10 @@ import (
 	"math/big"
 	"net"
 	"time"
+
+	"github.com/cloudflare/cfssl/config"
+
+	"novit.nc/direktil/pkg/clustersconfig"
 )
 
 const (
@@ -20,6 +24,10 @@ const (
 	// ECPrivateKeyBlockType is a possible value for pem.Block.Type.
 	ECPrivateKeyBlockType = "EC PRIVATE KEY"
 )
+
+func sslConfig(cfg *clustersconfig.Config) (*config.Config, error) {
+	return config.LoadConfig([]byte(cfg.SSLConfig))
+}
 
 func PrivateKeyPEM() (*ecdsa.PrivateKey, []byte) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
