@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"path"
 	"path/filepath"
 
 	cfsslconfig "github.com/cloudflare/cfssl/config"
@@ -112,11 +113,20 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 		return secretData.KeyCert(cluster, req.CA, name, req.Profile, req.Label, certReq)
 	}
 
+	asYaml := func(v interface{}) (string, error) {
+		ba, err := yaml.Marshal(v)
+		if err != nil {
+			return "", err
+		}
+
+		return string(ba), nil
+	}
+
 	extraFuncs := map[string]interface{}{
 		"static_pods": func(name string) (string, error) {
 			t := ctx.clusterConfig.StaticPodsTemplate(name)
 			if t == nil {
-				return "", nil
+				return "", fmt.Errorf("no static pods template named %q", name)
 			}
 
 			buf := &bytes.Buffer{}
@@ -127,6 +137,10 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 			}
 
 			return buf.String(), nil
+		},
+
+		"token": func(name string) (s string, err error) {
+			return secretData.Token(cluster, name)
 		},
 
 		"ca_key": func(name string) (s string, err error) {
@@ -149,6 +163,28 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 			return
 		},
 
+		"ca_dir": func(name string) (s string, err error) {
+			ca, err := secretData.CA(cluster, name)
+			if err != nil {
+				return
+			}
+
+			dir := path.Join("etc", "tls-ca", name)
+
+			return asYaml([]config.FileDef{
+				{
+					Path:    path.Join(dir, "ca.crt"),
+					Mode:    0644,
+					Content: string(ca.Cert),
+				},
+				{
+					Path:    path.Join(dir, "ca.key"),
+					Mode:    0600,
+					Content: string(ca.Key),
+				},
+			})
+		},
+
 		"tls_key": func(name string) (s string, err error) {
 			kc, err := getKeyCert(name)
 			if err != nil {
@@ -167,6 +203,44 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 
 			s = string(kc.Cert)
 			return
+		},
+
+		"tls_dir": func(name string) (s string, err error) {
+			csr := ctx.clusterConfig.CSR(name)
+			if csr == nil {
+				err = fmt.Errorf("no CSR named %q", name)
+				return
+			}
+
+			ca, err := secretData.CA(cluster, csr.CA)
+			if err != nil {
+				return
+			}
+
+			kc, err := getKeyCert(name)
+			if err != nil {
+				return
+			}
+
+			dir := path.Join("etc", "tls", name)
+
+			return asYaml([]config.FileDef{
+				{
+					Path:    path.Join(dir, "ca.crt"),
+					Mode:    0644,
+					Content: string(ca.Cert),
+				},
+				{
+					Path:    path.Join(dir, "tls.crt"),
+					Mode:    0644,
+					Content: string(kc.Cert),
+				},
+				{
+					Path:    path.Join(dir, "tls.key"),
+					Mode:    0600,
+					Content: string(kc.Key),
+				},
+			})
 		},
 	}
 
