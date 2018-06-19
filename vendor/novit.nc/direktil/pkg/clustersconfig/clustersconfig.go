@@ -149,7 +149,7 @@ func (t *Template) Execute(wr io.Writer, data interface{}, extraFuncs map[string
 			templateFuncs[name] = f
 		}
 
-		tmpl, err := template.New("tmpl").
+		tmpl, err := template.New(t.Name).
 			Funcs(templateFuncs).
 			Parse(t.Template)
 		if err != nil {

@@ -57,7 +57,7 @@ golang.org/x/sync/errgroup
 gopkg.in/check.v1
 # gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2
-# novit.nc/direktil/pkg v0.0.0-20180617064658-ec3736cedc38
+# novit.nc/direktil/pkg v0.0.0-20180619202319-3b512e61055e
 novit.nc/direktil/pkg/cas
 novit.nc/direktil/pkg/clustersconfig
 novit.nc/direktil/pkg/config
