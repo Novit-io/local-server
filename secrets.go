@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base32"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -22,7 +24,8 @@ type SecretData struct {
 }
 
 type ClusterSecrets struct {
-	CAs map[string]*CA
+	CAs    map[string]*CA
+	Tokens map[string]string
 }
 
 type CA struct {
@@ -79,9 +82,31 @@ func (sd *SecretData) cluster(name string) (cs *ClusterSecrets) {
 	}
 
 	cs = &ClusterSecrets{
-		CAs: make(map[string]*CA),
+		CAs:    make(map[string]*CA),
+		Tokens: make(map[string]string),
 	}
 	sd.clusters[name] = cs
+	sd.changed = true
+	return
+}
+
+func (sd *SecretData) Token(cluster, name string) (token string, err error) {
+	cs := sd.cluster(cluster)
+
+	token = cs.Tokens[name]
+	if token != "" {
+		return
+	}
+
+	b := make([]byte, 16)
+	_, err = rand.Read(b)
+	if err != nil {
+		return
+	}
+
+	token = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b)
+
+	cs.Tokens[name] = token
 	sd.changed = true
 	return
 }
