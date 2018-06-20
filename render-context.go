@@ -142,6 +142,13 @@ func (ctx *renderContext) StaticPods() (ba []byte, err error) {
 		return
 	}
 
+	if secretData.Changed() {
+		err = secretData.Save()
+		if err != nil {
+			return
+		}
+	}
+
 	ba = buf.Bytes()
 	return
 }
