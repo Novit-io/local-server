@@ -14,19 +14,21 @@ var (
 )
 
 func readConfig() (config *clustersconfig.Config, err error) {
+	configFile := filepath.Join(*dataDir, "current-config.yaml")
+
 	if *configFromDir != "" {
-		config, err = clustersconfig.FromDir(*dataDir)
+		config, err = clustersconfig.FromDir(*configFromDir)
 		if err != nil {
 			log.Print("failed to load config: ", err)
 			return nil, err
 		}
 
-		if err = config.SaveTo(filepath.Join(*dataDir, "global-config.yaml")); err != nil {
+		if err = config.SaveTo(configFile); err != nil {
 			return nil, err
 		}
 
 		return
 	}
 
-	return clustersconfig.FromFile(filepath.Join(*dataDir, "current-config.yaml"))
+	return clustersconfig.FromFile(configFile)
 }
