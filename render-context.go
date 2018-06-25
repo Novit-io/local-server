@@ -66,13 +66,7 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 
 	ctxMap := ctx.asMap()
 
-	// FIXME duplicate
-	sslCfg, err := cfsslconfig.LoadConfig([]byte(ctx.clusterConfig.SSLConfig))
-	if err != nil {
-		return
-	}
-
-	secretData, err := loadSecretData(sslCfg)
+	secretData, err := ctx.secretData()
 	if err != nil {
 		return
 	}
@@ -118,14 +112,24 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 	return
 }
 
-func (ctx *renderContext) StaticPods() (ba []byte, err error) {
-	// FIXME duplicate
-	sslCfg, err := cfsslconfig.LoadConfig([]byte(ctx.clusterConfig.SSLConfig))
-	if err != nil {
-		return
+func (ctx *renderContext) secretData() (data *SecretData, err error) {
+	var sslCfg *cfsslconfig.Config
+
+	if ctx.clusterConfig.SSLConfig == "" {
+		sslCfg = &cfsslconfig.Config{}
+	} else {
+		sslCfg, err = cfsslconfig.LoadConfig([]byte(ctx.clusterConfig.SSLConfig))
+		if err != nil {
+			return
+		}
 	}
 
-	secretData, err := loadSecretData(sslCfg)
+	data, err = loadSecretData(sslCfg)
+	return
+}
+
+func (ctx *renderContext) StaticPods() (ba []byte, err error) {
+	secretData, err := ctx.secretData()
 	if err != nil {
 		return
 	}
