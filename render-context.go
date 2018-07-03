@@ -30,9 +30,16 @@ type renderContext struct {
 	clusterConfig *clustersconfig.Config
 }
 
-func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) *renderContext {
-	group := cfg.Group(host.Group)
+func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (*renderContext, error) {
 	cluster := cfg.Cluster(host.Cluster)
+	if cluster == nil {
+		return nil, fmt.Errorf("no cluster named %q", host.Cluster)
+	}
+
+	group := cfg.Group(host.Group)
+	if group == nil {
+		return nil, fmt.Errorf("no group named %q", host.Group)
+	}
 
 	vars := make(map[string]interface{})
 
@@ -55,7 +62,7 @@ func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) *re
 		StaticPodsTemplate: cfg.StaticPodsTemplate(group.StaticPods),
 
 		clusterConfig: cfg,
-	}
+	}, nil
 }
 
 func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {

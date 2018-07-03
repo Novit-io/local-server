@@ -31,7 +31,10 @@ func cleanCAS() error {
 	activeTags := make([]string, len(cfg.Hosts))
 
 	for i, host := range cfg.Hosts {
-		ctx := newRenderContext(host, cfg)
+		ctx, err := newRenderContext(host, cfg)
+		if err != nil {
+			return err
+		}
 
 		tag, err := ctx.Tag()
 		if err != nil {

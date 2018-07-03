@@ -93,12 +93,7 @@ func serveHosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hostNames := make([]string, len(cfg.Hosts))
-	for i, host := range cfg.Hosts {
-		hostNames[i] = host.Name
-	}
-
-	renderJSON(w, hostNames)
+	renderJSON(w, cfg.Hosts)
 }
 
 func serveHost(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +132,12 @@ func serveHost(w http.ResponseWriter, r *http.Request) {
 }
 
 func renderHost(w http.ResponseWriter, r *http.Request, what string, host *clustersconfig.Host, cfg *clustersconfig.Config) {
-	ctx := newRenderContext(host, cfg)
+	ctx, err := newRenderContext(host, cfg)
+	if err != nil {
+		log.Printf("host %s: %s: failed to render: %v", what, host.Name, err)
+		http.Error(w, "", http.StatusServiceUnavailable)
+		return
+	}
 
 	switch what {
 	case "ipxe":
@@ -147,8 +147,6 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *clust
 	default:
 		w.Header().Set("Content-Type", "application/octet-stream")
 	}
-
-	var err error
 
 	switch what {
 	case "ipxe":
@@ -162,6 +160,9 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *clust
 
 	case "boot.iso":
 		err = renderCtx(w, r, ctx, "boot.iso", buildBootISO)
+
+	case "boot.tar":
+		err = renderCtx(w, r, ctx, "boot.tar", buildBootTar)
 
 	case "config":
 		err = renderConfig(w, r, ctx)
