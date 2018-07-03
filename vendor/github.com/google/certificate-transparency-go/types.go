@@ -54,6 +54,12 @@ func (e LogEntryType) String() string {
 	}
 }
 
+// RFC6962 section 2.1 requires a prefix byte on hash inputs for second preimage resistance.
+const (
+	TreeLeafPrefix = byte(0x00)
+	TreeNodePrefix = byte(0x01)
+)
+
 // MerkleLeafType represents the MerkleLeafType enum from section 3.4:
 //   enum { timestamped_entry(0), (255) } MerkleLeafType;
 type MerkleLeafType tls.Enum // tls:"maxval:255"
@@ -413,6 +419,29 @@ type GetSTHResponse struct {
 	Timestamp         uint64 `json:"timestamp"`           // Time that the tree was created
 	SHA256RootHash    []byte `json:"sha256_root_hash"`    // Root hash of the tree
 	TreeHeadSignature []byte `json:"tree_head_signature"` // Log signature for this STH
+}
+
+// ToSignedTreeHead creates a SignedTreeHead from the GetSTHResponse.
+func (r *GetSTHResponse) ToSignedTreeHead() (*SignedTreeHead, error) {
+	sth := SignedTreeHead{
+		TreeSize:  r.TreeSize,
+		Timestamp: r.Timestamp,
+	}
+
+	if len(r.SHA256RootHash) != sha256.Size {
+		return nil, fmt.Errorf("sha256_root_hash is invalid length, expected %d got %d", sha256.Size, len(r.SHA256RootHash))
+	}
+	copy(sth.SHA256RootHash[:], r.SHA256RootHash)
+
+	var ds DigitallySigned
+	if rest, err := tls.Unmarshal(r.TreeHeadSignature, &ds); err != nil {
+		return nil, fmt.Errorf("tls.Unmarshal(): %s", err)
+	} else if len(rest) > 0 {
+		return nil, fmt.Errorf("trailing data (%d bytes) after DigitallySigned", len(rest))
+	}
+	sth.TreeHeadSignature = ds
+
+	return &sth, nil
 }
 
 // GetSTHConsistencyResponse represents the JSON response to the get-sth-consistency

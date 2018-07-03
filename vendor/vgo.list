@@ -1,4 +1,4 @@
-# github.com/cavaliercoder/go-cpio v0.0.0-20180222193108-9caab6ff29df
+# github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
 github.com/cavaliercoder/go-cpio
 # github.com/cloudflare/cfssl v0.0.0-20180530085446-275fb308ac70
 github.com/cloudflare/cfssl/auth
@@ -15,23 +15,16 @@ github.com/cloudflare/cfssl/log
 github.com/cloudflare/cfssl/ocsp/config
 github.com/cloudflare/cfssl/signer
 github.com/cloudflare/cfssl/signer/local
-# github.com/gogo/protobuf v1.0.0
-github.com/gogo/protobuf/proto
-github.com/gogo/protobuf/proto/proto3_proto
-github.com/gogo/protobuf/proto/testdata
-github.com/gogo/protobuf/protoc-gen-gogo/descriptor
-github.com/gogo/protobuf/sortkeys
-github.com/gogo/protobuf/types
-# github.com/golang/protobuf v1.0.0
+# github.com/golang/protobuf v1.1.0
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/proto/proto3_proto
-github.com/golang/protobuf/proto/testdata
+github.com/golang/protobuf/proto/test_proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/certificate-transparency-go v0.0.0-20180222191210-5ab67e519c93
+# github.com/google/certificate-transparency-go v1.0.19
 github.com/google/certificate-transparency-go
 github.com/google/certificate-transparency-go/asn1
 github.com/google/certificate-transparency-go/client
