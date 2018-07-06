@@ -36,8 +36,9 @@ type CA struct {
 }
 
 type KeyCert struct {
-	Key  []byte
-	Cert []byte
+	Key     []byte
+	Cert    []byte
+	ReqHash string
 }
 
 func loadSecretData(config *config.Config) (*SecretData, error) {
@@ -161,8 +162,9 @@ func (sd *SecretData) KeyCert(cluster, caName, name, profile, label string, req 
 		return
 	}
 
+	rh := hash(req)
 	kc, ok := ca.Signed[name]
-	if ok {
+	if ok && rh == kc.ReqHash {
 		return
 	}
 
@@ -190,8 +192,9 @@ func (sd *SecretData) KeyCert(cluster, caName, name, profile, label string, req 
 	}
 
 	kc = &KeyCert{
-		Key:  key,
-		Cert: cert,
+		Key:     key,
+		Cert:    cert,
+		ReqHash: rh,
 	}
 
 	ca.Signed[name] = kc
