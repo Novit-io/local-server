@@ -220,7 +220,14 @@ func serveCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clusterName, what := p[2], p[3]
+	clusterName := p[2]
+
+	p = strings.SplitN(p[3], ".", 2)
+	what := p[0]
+	format := ""
+	if len(p) > 1 {
+		format = p[1]
+	}
 
 	cfg, err := readConfig()
 	if err != nil {
@@ -267,7 +274,16 @@ func serveCluster(w http.ResponseWriter, r *http.Request) {
 			cm.Data[addon.Name] = buf.String()
 		}
 
-		yaml.NewEncoder(w).Encode(cm)
+		switch format {
+		case "yaml":
+			for name, data := range cm.Data {
+				w.Write([]byte("\n# addon: " + name + "\n---\n\n"))
+				w.Write([]byte(data))
+			}
+
+		default:
+			yaml.NewEncoder(w).Encode(cm)
+		}
 
 	default:
 		http.NotFound(w, r)
