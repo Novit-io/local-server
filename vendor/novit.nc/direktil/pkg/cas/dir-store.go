@@ -45,8 +45,11 @@ func (s *DirStore) GetOrCreate(tag, item string, create func(io.Writer) error) (
 			return
 		}
 
+		partFile := fullPath + ".part"
+		os.Remove(partFile)
+
 		var out *os.File
-		out, err = os.OpenFile(fullPath+".part", os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
+		out, err = os.OpenFile(partFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
 		if err != nil {
 			return
 		}

@@ -2,11 +2,53 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	yaml "gopkg.in/yaml.v2"
 )
+
+// Load a config from a file.
+func Load(file string) (config *Config, err error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return
+	}
+
+	defer f.Close()
+
+	config, err = Read(f)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse %s: %v", file, err)
+	}
+
+	return
+}
+
+// Read a config from a reader.
+func Read(reader io.Reader) (config *Config, err error) {
+	config = &Config{}
+
+	err = yaml.NewDecoder(reader).Decode(config)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+// Parse the config in data.
+func Parse(data []byte) (config *Config, err error) {
+	config = &Config{}
+
+	err = yaml.Unmarshal(data, config)
+	if err != nil {
+		return nil, err
+	}
+
+	return
+}
 
 // Config represent this system's configuration
 type Config struct {
@@ -82,20 +124,4 @@ type NetworkDef struct {
 	}
 	Optional bool
 	Script   string
-}
-
-func Load(file string) (config *Config, err error) {
-	config = &Config{}
-
-	configData, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %v", file, err)
-	}
-
-	err = yaml.Unmarshal(configData, config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse %s: %v", file, err)
-	}
-
-	return
 }

@@ -1446,7 +1446,7 @@ func isValidIPMask(mask []byte) bool {
 	return true
 }
 
-func parseNameConstraintsExtension(out *Certificate, e pkix.Extension) (unhandled bool, err error) {
+func parseNameConstraintsExtension(out *Certificate, e pkix.Extension, nfe *NonFatalErrors) (unhandled bool, err error) {
 	// RFC 5280, 4.2.1.10
 
 	// NameConstraints ::= SEQUENCE {
@@ -1513,7 +1513,7 @@ func parseNameConstraintsExtension(out *Certificate, e pkix.Extension) (unhandle
 					trimmedDomain = trimmedDomain[1:]
 				}
 				if _, ok := domainToReverseLabels(trimmedDomain); !ok {
-					return nil, nil, nil, nil, fmt.Errorf("x509: failed to parse dnsName constraint %q", domain)
+					nfe.AddError(fmt.Errorf("x509: failed to parse dnsName constraint %q", domain))
 				}
 				dnsNames = append(dnsNames, domain)
 
@@ -1550,7 +1550,7 @@ func parseNameConstraintsExtension(out *Certificate, e pkix.Extension) (unhandle
 				// it specifies an exact mailbox name.
 				if strings.Contains(constraint, "@") {
 					if _, ok := parseRFC2821Mailbox(constraint); !ok {
-						return nil, nil, nil, nil, fmt.Errorf("x509: failed to parse rfc822Name constraint %q", constraint)
+						nfe.AddError(fmt.Errorf("x509: failed to parse rfc822Name constraint %q", constraint))
 					}
 				} else {
 					// Otherwise it's a domain name.
@@ -1559,7 +1559,7 @@ func parseNameConstraintsExtension(out *Certificate, e pkix.Extension) (unhandle
 						domain = domain[1:]
 					}
 					if _, ok := domainToReverseLabels(domain); !ok {
-						return nil, nil, nil, nil, fmt.Errorf("x509: failed to parse rfc822Name constraint %q", constraint)
+						nfe.AddError(fmt.Errorf("x509: failed to parse rfc822Name constraint %q", constraint))
 					}
 				}
 				emails = append(emails, constraint)
@@ -1583,7 +1583,7 @@ func parseNameConstraintsExtension(out *Certificate, e pkix.Extension) (unhandle
 					trimmedDomain = trimmedDomain[1:]
 				}
 				if _, ok := domainToReverseLabels(trimmedDomain); !ok {
-					return nil, nil, nil, nil, fmt.Errorf("x509: failed to parse URI constraint %q", domain)
+					nfe.AddError(fmt.Errorf("x509: failed to parse URI constraint %q", domain))
 				}
 				uriDomains = append(uriDomains, domain)
 
@@ -1698,7 +1698,7 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 				}
 
 			case OIDExtensionNameConstraints[3]:
-				unhandled, err = parseNameConstraintsExtension(out, e)
+				unhandled, err = parseNameConstraintsExtension(out, e, &nfe)
 				if err != nil {
 					return nil, err
 				}
@@ -1834,6 +1834,8 @@ func ParseTBSCertificate(asn1Data []byte) (*Certificate, error) {
 }
 
 // ParseCertificate parses a single certificate from the given ASN.1 DER data.
+// This function can return both a Certificate and an error (in which case the
+// error will be of type NonFatalErrors).
 func ParseCertificate(asn1Data []byte) (*Certificate, error) {
 	var cert certificate
 	rest, err := asn1.Unmarshal(asn1Data, &cert)
@@ -1849,6 +1851,8 @@ func ParseCertificate(asn1Data []byte) (*Certificate, error) {
 
 // ParseCertificates parses one or more certificates from the given ASN.1 DER
 // data. The certificates must be concatenated with no intermediate padding.
+// This function can return both a slice of Certificate and an error (in which
+// case the error will be of type NonFatalErrors).
 func ParseCertificates(asn1Data []byte) ([]*Certificate, error) {
 	var v []*certificate
 
@@ -1862,15 +1866,23 @@ func ParseCertificates(asn1Data []byte) ([]*Certificate, error) {
 		v = append(v, cert)
 	}
 
+	var nfe NonFatalErrors
 	ret := make([]*Certificate, len(v))
 	for i, ci := range v {
 		cert, err := parseCertificate(ci)
 		if err != nil {
-			return nil, err
+			if errs, ok := err.(NonFatalErrors); !ok {
+				return nil, err
+			} else {
+				nfe.Errors = append(nfe.Errors, errs.Errors...)
+			}
 		}
 		ret[i] = cert
 	}
 
+	if nfe.HasError() {
+		return ret, nfe
+	}
 	return ret, nil
 }
 

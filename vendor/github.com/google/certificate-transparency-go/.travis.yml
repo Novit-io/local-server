@@ -1,7 +1,7 @@
 sudo: true  # required for CI push into Kubernetes.
 language: go
 os: linux
-go: 1.9
+go: "1.10"
 
 go_import_path: github.com/google/certificate-transparency-go
 
@@ -22,8 +22,8 @@ install:
   - |
     (
       cd ../protoc
-      wget https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-${TRAVIS_OS_NAME}-x86_64.zip
-      unzip protoc-3.2.0-${TRAVIS_OS_NAME}-x86_64.zip
+      wget https://github.com/google/protobuf/releases/download/v3.5.1/protoc-3.5.1-${TRAVIS_OS_NAME}-x86_64.zip
+      unzip protoc-3.5.1-${TRAVIS_OS_NAME}-x86_64.zip
     )
   - export PATH=$(pwd)/../protoc/bin:$PATH
   - go get -d -t ./...

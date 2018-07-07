@@ -30,15 +30,17 @@ type renderContext struct {
 	clusterConfig *clustersconfig.Config
 }
 
-func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (*renderContext, error) {
+func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ctx *renderContext, err error) {
 	cluster := cfg.Cluster(host.Cluster)
 	if cluster == nil {
-		return nil, fmt.Errorf("no cluster named %q", host.Cluster)
+		err = fmt.Errorf("no cluster named %q", host.Cluster)
+		return
 	}
 
 	group := cfg.Group(host.Group)
 	if group == nil {
-		return nil, fmt.Errorf("no group named %q", host.Group)
+		err = fmt.Errorf("no group named %q", host.Group)
+		return
 	}
 
 	vars := make(map[string]interface{})
@@ -78,6 +80,20 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 		return
 	}
 
+	templateFuncs := ctx.templateFuncs(secretData, ctxMap)
+
+	render := func(what string, t *clustersconfig.Template) (s string, err error) {
+		buf := &bytes.Buffer{}
+		err = t.Execute(buf, ctxMap, templateFuncs)
+		if err != nil {
+			log.Printf("host %s: failed to render %s [%q]: %v", ctx.Host.Name, what, t.Name, err)
+			return
+		}
+
+		s = buf.String()
+		return
+	}
+
 	extraFuncs := ctx.templateFuncs(secretData, ctxMap)
 
 	extraFuncs["static_pods"] = func(name string) (string, error) {
@@ -86,14 +102,7 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 			return "", fmt.Errorf("no static pods template named %q", name)
 		}
 
-		buf := &bytes.Buffer{}
-		err := t.Execute(buf, ctxMap, ctx.templateFuncs(secretData, ctxMap))
-		if err != nil {
-			log.Printf("host %s: failed to render static pods: %v", ctx.Host.Name, err)
-			return "", err
-		}
-
-		return buf.String(), nil
+		return render("static pods", t)
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))

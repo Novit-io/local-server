@@ -42,6 +42,9 @@ func main() {
 	http.HandleFunc("/hosts", serveHosts)
 	http.HandleFunc("/hosts/", serveHost)
 
+	http.HandleFunc("/clusters", serveClusters)
+	http.HandleFunc("/clusters/", serveCluster)
+
 	if *address != "" {
 		log.Print("HTTP listening on ", *address)
 		go log.Fatal(http.ListenAndServe(*address, nil))

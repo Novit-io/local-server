@@ -11,7 +11,7 @@ import (
 )
 
 func FromDir(dirPath string) (*Config, error) {
-	config := &Config{}
+	config := &Config{Addons: make(map[string][]*Template)}
 
 	store := dirStore{dirPath}
 	load := func(dir, name string, out interface{}) error {
@@ -95,6 +95,23 @@ func FromDir(dirPath string) (*Config, error) {
 		return nil, err
 	}
 
+	{
+		addonSets, err := store.listDir("addons")
+		if err != nil {
+			return nil, err
+		}
+
+		for _, addonSet := range addonSets {
+			templates := make([]*Template, 0)
+			if err = loadTemplates(path.Join("addons", addonSet), &templates); err != nil {
+				return nil, err
+			}
+
+			config.Addons[addonSet] = templates
+		}
+	}
+
+	// load SSL configuration
 	if ba, err := ioutil.ReadFile(filepath.Join(dirPath, "ssl-config.json")); err == nil {
 		config.SSLConfig = string(ba)
 
@@ -119,6 +136,32 @@ func FromDir(dirPath string) (*Config, error) {
 
 type dirStore struct {
 	path string
+}
+
+// listDir
+func (b *dirStore) listDir(prefix string) (subDirs []string, err error) {
+	entries, err := ioutil.ReadDir(filepath.Join(b.path, prefix))
+	if err != nil {
+		return
+	}
+
+	subDirs = make([]string, 0, len(entries))
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+
+		if len(name) == 0 || name[0] == '.' {
+			continue
+		}
+
+		subDirs = append(subDirs, name)
+	}
+
+	return
 }
 
 // Names is part of the kvStore interface

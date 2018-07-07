@@ -16,13 +16,14 @@ type Config struct {
 	Groups       []*Group
 	Clusters     []*Cluster
 	Configs      []*Template
-	StaticPods   []*Template    `yaml:"static_pods"`
+	StaticPods   []*Template `yaml:"static_pods"`
+	Addons       map[string][]*Template
 	SSLConfig    string         `yaml:"ssl_config"`
 	CertRequests []*CertRequest `yaml:"cert_requests"`
 }
 
 func FromBytes(data []byte) (*Config, error) {
-	config := &Config{}
+	config := &Config{Addons: make(map[string][]*Template)}
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return nil, err
 	}
@@ -192,6 +193,7 @@ type Vars map[string]interface{}
 type Cluster struct {
 	Name    string
 	Domain  string
+	Addons  string
 	Subnets struct {
 		Services string
 		Pods     string

@@ -1,6 +1,6 @@
 # github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
 github.com/cavaliercoder/go-cpio
-# github.com/cloudflare/cfssl v0.0.0-20180530085446-275fb308ac70
+# github.com/cloudflare/cfssl v0.0.0-20180705210102-ff56ab5eb62a
 github.com/cloudflare/cfssl/auth
 github.com/cloudflare/cfssl/certdb
 github.com/cloudflare/cfssl/config
@@ -24,33 +24,38 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/certificate-transparency-go v1.0.19
+# github.com/google/certificate-transparency-go v1.0.20
 github.com/google/certificate-transparency-go
 github.com/google/certificate-transparency-go/asn1
 github.com/google/certificate-transparency-go/client
 github.com/google/certificate-transparency-go/client/configpb
+github.com/google/certificate-transparency-go/gossip/minimal/x509ext
 github.com/google/certificate-transparency-go/jsonclient
 github.com/google/certificate-transparency-go/testdata
 github.com/google/certificate-transparency-go/tls
 github.com/google/certificate-transparency-go/x509
 github.com/google/certificate-transparency-go/x509/pkix
 github.com/google/certificate-transparency-go/x509util
-# golang.org/x/crypto v0.0.0-20180214000028-650f4a345ab4
+# github.com/kr/pretty v0.1.0
+github.com/kr/pretty
+# github.com/kr/text v0.1.0
+github.com/kr/text
+# golang.org/x/crypto v0.0.0-20180621125126-a49355c7e3f8
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
-# golang.org/x/net v0.0.0-20180208041118-f5dfe339be1d
+# golang.org/x/net v0.0.0-20180706051357-32a936f46389
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 # golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
 golang.org/x/sync/errgroup
-# gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405
+# gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 gopkg.in/check.v1
 # gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2
-# novit.nc/direktil/pkg v0.0.0-20180619202319-3b512e61055e
+# novit.nc/direktil/pkg v0.0.0-20180707011528-e82b59c0324d
 novit.nc/direktil/pkg/cas
 novit.nc/direktil/pkg/clustersconfig
 novit.nc/direktil/pkg/config

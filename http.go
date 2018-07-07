@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	yaml "gopkg.in/yaml.v2"
 	"novit.nc/direktil/pkg/clustersconfig"
 )
 
@@ -192,4 +194,82 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *clust
 func renderJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
+}
+
+func serveClusters(w http.ResponseWriter, r *http.Request) {
+	cfg, err := readConfig()
+	if err != nil {
+		http.Error(w, "", http.StatusServiceUnavailable)
+		return
+	}
+
+	clusterNames := make([]string, len(cfg.Clusters))
+	for i, cluster := range cfg.Clusters {
+		clusterNames[i] = cluster.Name
+	}
+
+	renderJSON(w, clusterNames)
+}
+
+func serveCluster(w http.ResponseWriter, r *http.Request) {
+	// "/clusters/<name>/<what>" split => "", "clusters", "<name>", "<what>"
+	p := strings.Split(r.URL.Path, "/")
+
+	if len(p) != 4 {
+		http.NotFound(w, r)
+		return
+	}
+
+	clusterName, what := p[2], p[3]
+
+	cfg, err := readConfig()
+	if err != nil {
+		http.Error(w, "", http.StatusServiceUnavailable)
+		return
+	}
+
+	cluster := cfg.Cluster(clusterName)
+	if cluster == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	switch what {
+	case "addons":
+		if cluster.Addons == "" {
+			log.Printf("cluster %q has no addons defined", clusterName)
+			http.NotFound(w, r)
+			return
+		}
+
+		addons := cfg.Addons[cluster.Addons]
+		if addons == nil {
+			log.Printf("cluster %q: no addons with name %q", clusterName, cluster.Addons)
+			http.NotFound(w, r)
+			return
+		}
+
+		clusterAsMap := asMap(cluster)
+
+		cm := newConfigMap("cluster-addons")
+
+		for _, addon := range addons {
+			buf := &bytes.Buffer{}
+			err := addon.Execute(buf, clusterAsMap, nil)
+
+			if err != nil {
+				log.Printf("cluster %q: addons %q: failed to render %q: %v",
+					clusterName, cluster.Addons, addon.Name, err)
+				http.Error(w, "", http.StatusServiceUnavailable)
+				return
+			}
+
+			cm.Data[addon.Name] = buf.String()
+		}
+
+		yaml.NewEncoder(w).Encode(cm)
+
+	default:
+		http.NotFound(w, r)
+	}
 }
