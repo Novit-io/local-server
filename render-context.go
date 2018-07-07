@@ -251,7 +251,7 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 				return
 			}
 
-			dir := path.Join("etc", "tls-ca", name)
+			dir := "/" + path.Join("etc", "tls-ca", name)
 
 			return asYaml([]config.FileDef{
 				{
@@ -304,7 +304,7 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 				return
 			}
 
-			dir := path.Join("etc", "tls", name)
+			dir := "/" + path.Join("etc", "tls", name)
 
 			return asYaml([]config.FileDef{
 				{
