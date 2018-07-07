@@ -1,4 +1,4 @@
-from golang:1.10.2 as build
+from golang:1.10.3 as build
 env pkg novit.nc/direktil/local-server
 add . /go/src/${pkg}
 workdir /go/src/${pkg}
