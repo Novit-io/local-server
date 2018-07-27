@@ -257,6 +257,8 @@ func serveCluster(w http.ResponseWriter, r *http.Request) {
 		}
 
 		clusterAsMap := asMap(cluster)
+		clusterAsMap["kubernetes_svc_ip"] = cluster.KubernetesSvcIP().String()
+		clusterAsMap["dns_svc_ip"] = cluster.DNSSvcIP().String()
 
 		cm := newConfigMap("cluster-addons")
 
