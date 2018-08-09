@@ -5,7 +5,9 @@ import (
 	"encoding/base32"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -15,6 +17,8 @@ import (
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
+	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 type SecretData struct {
@@ -152,6 +156,29 @@ func (sd *SecretData) CA(cluster, name string) (ca *CA, err error) {
 }
 
 func (sd *SecretData) KeyCert(cluster, caName, name, profile, label string, req *csr.CertificateRequest) (kc *KeyCert, err error) {
+	for idx, host := range req.Hosts {
+		if ip := net.ParseIP(host); ip != nil {
+			// valid IP (v4 or v6)
+			continue
+		}
+
+		if host == "*" {
+			continue
+		}
+
+		//for _, part := range strings.Split(host, ".") {
+		if errs := validation.IsDNS1123Subdomain(host); len(errs) == 0 {
+			continue
+		}
+		if errs := validation.IsWildcardDNS1123Subdomain(host); len(errs) == 0 {
+			continue
+		}
+
+		path := field.NewPath(cluster, name, "hosts").Index(idx)
+		return nil, fmt.Errorf("%v: %q is not an IP or FQDN", path, host)
+		//}
+	}
+
 	if req.CA != nil {
 		err = errors.New("no CA section allowed here")
 		return
