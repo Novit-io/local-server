@@ -166,7 +166,6 @@ func (sd *SecretData) KeyCert(cluster, caName, name, profile, label string, req 
 			continue
 		}
 
-		//for _, part := range strings.Split(host, ".") {
 		if errs := validation.IsDNS1123Subdomain(host); len(errs) == 0 {
 			continue
 		}
@@ -176,7 +175,6 @@ func (sd *SecretData) KeyCert(cluster, caName, name, profile, label string, req 
 
 		path := field.NewPath(cluster, name, "hosts").Index(idx)
 		return nil, fmt.Errorf("%v: %q is not an IP or FQDN", path, host)
-		//}
 	}
 
 	if req.CA != nil {
