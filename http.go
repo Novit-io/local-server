@@ -54,8 +54,7 @@ func hostByIP(w http.ResponseWriter, r *http.Request) (*clustersconfig.Host, *cl
 	remoteAddr := r.RemoteAddr
 
 	if *trustXFF {
-		xff := r.Header.Get("X-Forwarded-For")
-		if xff != "" {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 			remoteAddr = strings.Split(xff, ",")[0]
 		}
 	}

@@ -33,11 +33,8 @@ func main() {
 
 	go casCleaner()
 
-	http.HandleFunc("/ipxe", serveHostByIP)
-	http.HandleFunc("/kernel", serveHostByIP)
-	http.HandleFunc("/initrd", serveHostByIP)
-	http.HandleFunc("/boot.iso", serveHostByIP)
-	http.HandleFunc("/static-pods", serveHostByIP)
+	// by default, serve a host resource by its IP
+	http.HandleFunc("/", serveHostByIP)
 
 	http.HandleFunc("/hosts", serveHosts)
 	http.HandleFunc("/hosts/", serveHost)
