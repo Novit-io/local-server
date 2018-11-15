@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"io"
 	"io/ioutil"
 	"log"
@@ -40,11 +41,29 @@ func buildBootImg(out io.Writer, ctx *renderContext) (err error) {
 
 	// send the result
 	bootImg.Seek(0, os.SEEK_SET)
+	io.Copy(out, bootImg)
+	return
+}
 
+func buildBootImgLZ4(out io.Writer, ctx *renderContext) (err error) {
 	lz4Out := lz4.NewWriter(out)
-	io.Copy(lz4Out, bootImg)
-	lz4Out.Close()
 
+	if err = buildBootImg(lz4Out, ctx); err != nil {
+		return
+	}
+
+	lz4Out.Close()
+	return
+}
+
+func buildBootImgGZ(out io.Writer, ctx *renderContext) (err error) {
+	gzOut := gzip.NewWriter(out)
+
+	if err = buildBootImg(gzOut, ctx); err != nil {
+		return
+	}
+
+	gzOut.Close()
 	return
 }
 

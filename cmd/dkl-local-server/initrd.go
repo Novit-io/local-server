@@ -46,6 +46,7 @@ func renderStaticPods(w http.ResponseWriter, r *http.Request, ctx *renderContext
 	return nil
 }
 
+// TODO move somewhere logical
 func renderCtx(w http.ResponseWriter, r *http.Request, ctx *renderContext, what string,
 	create func(out io.Writer, ctx *renderContext) error) error {
 	log.Printf("sending %s for %q", what, ctx.Host.Name)

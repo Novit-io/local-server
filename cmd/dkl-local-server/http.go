@@ -165,8 +165,14 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *clust
 	case "boot.tar":
 		err = renderCtx(w, r, ctx, "boot.tar", buildBootTar)
 
-	case "boot.img.lz4":
+	case "boot.img":
 		err = renderCtx(w, r, ctx, what, buildBootImg)
+
+	case "boot.img.gz":
+		err = renderCtx(w, r, ctx, what, buildBootImgGZ)
+
+	case "boot.img.lz4":
+		err = renderCtx(w, r, ctx, what, buildBootImgLZ4)
 
 	case "config":
 		err = renderConfig(w, r, ctx)
