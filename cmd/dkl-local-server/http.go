@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"path"
 	"regexp"
 	"strings"
 
@@ -45,7 +44,7 @@ func serveHostByIP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	what := path.Base(r.URL.Path)
+	what := strings.TrimLeft(r.URL.Path, "/")
 
 	renderHost(w, r, what, host, cfg)
 }
