@@ -2,21 +2,12 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"path"
-	"path/filepath"
 
-	cfsslconfig "github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/csr"
 	yaml "gopkg.in/yaml.v2"
 
 	"novit.nc/direktil/pkg/clustersconfig"
-	"novit.nc/direktil/pkg/config"
 )
 
 type renderContext struct {
@@ -67,20 +58,14 @@ func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ct
 	}, nil
 }
 
-func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
+func (ctx *renderContext) Config() string {
 	if ctx.ConfigTemplate == nil {
-		err = notFoundError{fmt.Sprintf("config %q", ctx.Group.Config)}
-		return
+		log.Fatalf("no such config: %q", ctx.Group.Config)
 	}
 
 	ctxMap := ctx.asMap()
 
-	secretData, err := ctx.secretData()
-	if err != nil {
-		return
-	}
-
-	templateFuncs := ctx.templateFuncs(secretData, ctxMap)
+	templateFuncs := ctx.templateFuncs(ctxMap)
 
 	render := func(what string, t *clustersconfig.Template) (s string, err error) {
 		buf := &bytes.Buffer{}
@@ -94,7 +79,7 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 		return
 	}
 
-	extraFuncs := ctx.templateFuncs(secretData, ctxMap)
+	extraFuncs := ctx.templateFuncs(ctxMap)
 
 	extraFuncs["static_pods"] = func(name string) (string, error) {
 		t := ctx.clusterConfig.StaticPodsTemplate(name)
@@ -106,85 +91,41 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err = ctx.ConfigTemplate.Execute(buf, ctxMap, extraFuncs); err != nil {
-		return
+	if err := ctx.ConfigTemplate.Execute(buf, ctxMap, extraFuncs); err != nil {
+		log.Fatalf("failed to render config %q for host %q: %v", ctx.Group.Config, ctx.Host.Name, err)
 	}
 
-	if secretData.Changed() {
-		err = secretData.Save()
-		if err != nil {
-			return
-		}
-	}
-
-	ba = buf.Bytes()
-
-	cfg = &config.Config{}
-
-	if err = yaml.Unmarshal(buf.Bytes(), cfg); err != nil {
-		return
-	}
-
-	return
-}
-
-func (ctx *renderContext) secretData() (data *SecretData, err error) {
-	var sslCfg *cfsslconfig.Config
-
-	if ctx.clusterConfig.SSLConfig == "" {
-		sslCfg = &cfsslconfig.Config{}
-	} else {
-		sslCfg, err = cfsslconfig.LoadConfig([]byte(ctx.clusterConfig.SSLConfig))
-		if err != nil {
-			return
-		}
-	}
-
-	data, err = loadSecretData(sslCfg)
-	return
+	return buf.String()
 }
 
 func (ctx *renderContext) StaticPods() (ba []byte, err error) {
-	secretData, err := ctx.secretData()
-	if err != nil {
-		return
-	}
-
 	if ctx.StaticPodsTemplate == nil {
-		err = notFoundError{fmt.Sprintf("static-pods %q", ctx.Group.StaticPods)}
-		return
+		log.Fatalf("no such static-pods: %q", ctx.Group.StaticPods)
 	}
 
 	ctxMap := ctx.asMap()
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err = ctx.StaticPodsTemplate.Execute(buf, ctxMap, ctx.templateFuncs(secretData, ctxMap)); err != nil {
+	if err = ctx.StaticPodsTemplate.Execute(buf, ctxMap, ctx.templateFuncs(ctxMap)); err != nil {
 		return
-	}
-
-	if secretData.Changed() {
-		err = secretData.Save()
-		if err != nil {
-			return
-		}
 	}
 
 	ba = buf.Bytes()
 	return
 }
 
-func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[string]interface{}) map[string]interface{} {
+func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[string]interface{} {
 	cluster := ctx.Cluster.Name
 
-	getKeyCert := func(name string) (kc *KeyCert, err error) {
+	getKeyCert := func(name, funcName string) (s string, err error) {
 		req := ctx.clusterConfig.CSR(name)
 		if req == nil {
-			err = errors.New("no such certificate request")
+			err = fmt.Errorf("no certificate request named %q", name)
 			return
 		}
 
 		if req.CA == "" {
-			err = errors.New("CA not defined")
+			err = fmt.Errorf("CA not defined in req %q", name)
 			return
 		}
 
@@ -194,135 +135,41 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 			return
 		}
 
-		certReq := &csr.CertificateRequest{
-			KeyRequest: csr.NewBasicKeyRequest(),
-		}
-
-		err = json.Unmarshal(buf.Bytes(), certReq)
-		if err != nil {
-			log.Print("unmarshal failed on: ", buf)
-			return
-		}
-
-		if req.PerHost {
-			name = name + "/" + ctx.Host.Name
-		}
-
-		return secretData.KeyCert(cluster, req.CA, name, req.Profile, req.Label, certReq)
-	}
-
-	asYaml := func(v interface{}) (string, error) {
-		ba, err := yaml.Marshal(v)
-		if err != nil {
-			return "", err
-		}
-
-		return string(ba), nil
+		s = fmt.Sprintf("{{ %s %q %q %q %q %q %q }}", funcName,
+			cluster, req.CA, name, req.Profile, req.Label, buf.String())
+		return
 	}
 
 	return map[string]interface{}{
-		"token": func(name string) (s string, err error) {
-			return secretData.Token(cluster, name)
+		"token": func(name string) (s string) {
+			return fmt.Sprintf("{{ token %q %q }}", cluster, name)
 		},
 
 		"ca_key": func(name string) (s string, err error) {
-			ca, err := secretData.CA(cluster, name)
-			if err != nil {
-				return
-			}
-
-			s = string(ca.Key)
-			return
+			// TODO check CA exists
+			// ?ctx.clusterConfig.CA(name)
+			return fmt.Sprintf("{{ ca_key %q %q }}", cluster, name), nil
 		},
 
 		"ca_crt": func(name string) (s string, err error) {
-			ca, err := secretData.CA(cluster, name)
-			if err != nil {
-				return
-			}
-
-			s = string(ca.Cert)
-			return
+			// TODO check CA exists
+			return fmt.Sprintf("{{ ca_crt %q %q }}", cluster, name), nil
 		},
 
 		"ca_dir": func(name string) (s string, err error) {
-			ca, err := secretData.CA(cluster, name)
-			if err != nil {
-				return
-			}
-
-			dir := "/" + path.Join("etc", "tls-ca", name)
-
-			return asYaml([]config.FileDef{
-				{
-					Path:    path.Join(dir, "ca.crt"),
-					Mode:    0644,
-					Content: string(ca.Cert),
-				},
-				{
-					Path:    path.Join(dir, "ca.key"),
-					Mode:    0600,
-					Content: string(ca.Key),
-				},
-			})
+			return fmt.Sprintf("{{ ca_dir %q %q }}", cluster, name), nil
 		},
 
-		"tls_key": func(name string) (s string, err error) {
-			kc, err := getKeyCert(name)
-			if err != nil {
-				return
-			}
-
-			s = string(kc.Key)
-			return
+		"tls_key": func(name string) (string, error) {
+			return getKeyCert(name, "tls_key")
 		},
 
 		"tls_crt": func(name string) (s string, err error) {
-			kc, err := getKeyCert(name)
-			if err != nil {
-				return
-			}
-
-			s = string(kc.Cert)
-			return
+			return getKeyCert(name, "tls_crt")
 		},
 
 		"tls_dir": func(name string) (s string, err error) {
-			csr := ctx.clusterConfig.CSR(name)
-			if csr == nil {
-				err = fmt.Errorf("no CSR named %q", name)
-				return
-			}
-
-			ca, err := secretData.CA(cluster, csr.CA)
-			if err != nil {
-				return
-			}
-
-			kc, err := getKeyCert(name)
-			if err != nil {
-				return
-			}
-
-			dir := "/" + path.Join("etc", "tls", name)
-
-			return asYaml([]config.FileDef{
-				{
-					Path:    path.Join(dir, "ca.crt"),
-					Mode:    0644,
-					Content: string(ca.Cert),
-				},
-				{
-					Path:    path.Join(dir, "tls.crt"),
-					Mode:    0644,
-					Content: string(kc.Cert),
-				},
-				{
-					Path:    path.Join(dir, "tls.key"),
-					Mode:    0600,
-					Content: string(kc.Key),
-				},
-			})
+			return getKeyCert(name, "tls_dir")
 		},
 
 		"hosts_of_group": func() (hosts []interface{}) {
@@ -341,38 +188,13 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 
 		"hosts_of_group_count": func() (count int) {
 			for _, host := range ctx.clusterConfig.Hosts {
-				if host.Group != ctx.Host.Group {
-					continue
+				if host.Group == ctx.Host.Group {
+					count++
 				}
-
-				count++
 			}
 			return
 		},
 	}
-}
-
-func (ctx *renderContext) distFilePath(path ...string) string {
-	return filepath.Join(append([]string{*dataDir, "dist"}, path...)...)
-}
-
-func (ctx *renderContext) Tag() (string, error) {
-	h := sha256.New()
-
-	_, cfg, err := ctx.Config()
-	if err != nil {
-		return "", err
-	}
-
-	enc := yaml.NewEncoder(h)
-
-	for _, o := range []interface{}{cfg, ctx} {
-		if err := enc.Encode(o); err != nil {
-			return "", err
-		}
-	}
-
-	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 func (ctx *renderContext) asMap() map[string]interface{} {

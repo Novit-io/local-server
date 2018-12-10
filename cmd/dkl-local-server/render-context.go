@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
+	"text/template"
 
 	cfsslconfig "github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
-	"github.com/golang/go/src/pkg/html/template"
 	yaml "gopkg.in/yaml.v2"
 
 	"novit.nc/direktil/pkg/config"

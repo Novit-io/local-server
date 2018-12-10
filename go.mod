@@ -2,15 +2,16 @@ module novit.nc/direktil/local-server
 
 require (
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
-	github.com/cloudflare/cfssl v0.0.0-20180705210102-ff56ab5eb62a
-	github.com/gobuffalo/packr v1.19.0
-	github.com/golang/protobuf v1.1.0 // indirect
-	github.com/google/certificate-transparency-go v1.0.20 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
+	github.com/cloudflare/cfssl v0.0.0-20181102015659-ea4033a214e7
+	github.com/gobuffalo/buffalo-plugins v1.8.3 // indirect
+	github.com/gobuffalo/genny v0.0.0-20181207193730-587570ab2cf7 // indirect
+	github.com/gobuffalo/packr v1.21.8 // indirect
+	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/pierrec/lz4 v2.0.5+incompatible
-	golang.org/x/crypto v0.0.0-20180621125126-a49355c7e3f8 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/yaml.v2 v2.2.1
-	k8s.io/apimachinery v0.0.0-20180808233214-a7b7e4de06b2
-	novit.nc/direktil/pkg v0.0.0-20180707011528-e82b59c0324d
+	github.com/ugorji/go/codec v0.0.0-20181209151446-772ced7fd4c2 // indirect
+	golang.org/x/sys v0.0.0-20181210030007-2a47403f2ae5 // indirect
+	golang.org/x/tools v0.0.0-20181207222222-4c874b978acb // indirect
+	gopkg.in/yaml.v2 v2.2.2
+	k8s.io/apimachinery v0.0.0-20181207080347-f1a02064268b
+	novit.nc/direktil/pkg v0.0.0-20181210105214-68c87509f2eb
 )

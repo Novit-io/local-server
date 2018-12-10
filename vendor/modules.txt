@@ -1,6 +1,6 @@
 # github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
 github.com/cavaliercoder/go-cpio
-# github.com/cloudflare/cfssl v0.0.0-20180705210102-ff56ab5eb62a
+# github.com/cloudflare/cfssl v0.0.0-20181102015659-ea4033a214e7
 github.com/cloudflare/cfssl/config
 github.com/cloudflare/cfssl/csr
 github.com/cloudflare/cfssl/helpers
@@ -15,19 +15,13 @@ github.com/cloudflare/cfssl/crypto/pkcs7
 github.com/cloudflare/cfssl/helpers/derhelpers
 github.com/cloudflare/cfssl/certdb
 github.com/cloudflare/cfssl/info
-# github.com/gobuffalo/envy v1.6.7
-github.com/gobuffalo/envy
-# github.com/gobuffalo/packd v0.0.0-20181031195726-c82734870264
-github.com/gobuffalo/packd
-# github.com/gobuffalo/packr v1.19.0
-github.com/gobuffalo/packr
-# github.com/golang/protobuf v1.1.0
+# github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/certificate-transparency-go v1.0.20
+# github.com/google/certificate-transparency-go v1.0.21
 github.com/google/certificate-transparency-go
 github.com/google/certificate-transparency-go/tls
 github.com/google/certificate-transparency-go/x509
@@ -36,32 +30,29 @@ github.com/google/certificate-transparency-go/jsonclient
 github.com/google/certificate-transparency-go/asn1
 github.com/google/certificate-transparency-go/x509/pkix
 github.com/google/certificate-transparency-go/client/configpb
-# github.com/joho/godotenv v1.3.0
-github.com/joho/godotenv
-# github.com/markbates/oncer v0.0.0-20181014194634-05fccaae8fc4
-github.com/markbates/oncer
 # github.com/pierrec/lz4 v2.0.5+incompatible
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
-# github.com/pkg/errors v0.8.0
-github.com/pkg/errors
-# golang.org/x/crypto v0.0.0-20180621125126-a49355c7e3f8
+# golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pkcs12
+golang.org/x/crypto/ed25519
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/pkcs12/internal/rc2
-# golang.org/x/net v0.0.0-20181102091132-c10e9556a7bc
+golang.org/x/crypto/ed25519/internal/edwards25519
+# golang.org/x/net v0.0.0-20181207154023-610586996380
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
-# gopkg.in/yaml.v2 v2.2.1
+# gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
-# k8s.io/apimachinery v0.0.0-20180808233214-a7b7e4de06b2
+# k8s.io/apimachinery v0.0.0-20181207080347-f1a02064268b
 k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/util/validation/field
 k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/util/sets
-# novit.nc/direktil/pkg v0.0.0-20180707011528-e82b59c0324d
-novit.nc/direktil/pkg/cas
+# novit.nc/direktil/pkg v0.0.0-20181210105214-68c87509f2eb
 novit.nc/direktil/pkg/clustersconfig
+novit.nc/direktil/pkg/localconfig
+novit.nc/direktil/pkg/cas
 novit.nc/direktil/pkg/config
