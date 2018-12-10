@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/gobuffalo/packr"
 	"novit.nc/direktil/pkg/cas"
 )
 
@@ -21,14 +20,10 @@ var (
 	keyFile    = flag.String("tls-key", etcDir+"/server.key", "Server TLS key")
 
 	casStore cas.Store
-
-	assets packr.Box
 )
 
 func main() {
 	flag.Parse()
-
-	assets = packr.NewBox("./assets")
 
 	if *address == "" && *tlsAddress == "" {
 		log.Fatal("no listen address given")
