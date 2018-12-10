@@ -8,8 +8,9 @@ import (
 	"os"
 
 	yaml "gopkg.in/yaml.v2"
-	"novit.nc/direktil/pkg/clustersconfig"
 	"novit.nc/direktil/pkg/localconfig"
+
+	"novit.nc/direktil/local-server/pkg/clustersconfig"
 )
 
 var (

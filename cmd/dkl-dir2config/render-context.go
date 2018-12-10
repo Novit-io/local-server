@@ -7,7 +7,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"novit.nc/direktil/pkg/clustersconfig"
+	"novit.nc/direktil/local-server/pkg/clustersconfig"
 )
 
 type renderContext struct {
