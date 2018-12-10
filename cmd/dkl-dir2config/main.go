@@ -92,7 +92,7 @@ func main() {
 func renderAddons(cluster *clustersconfig.Cluster) string {
 	addons := src.Addons[cluster.Addons]
 	if addons == nil {
-		log.Fatal("cluster %q: no addons with name %q", cluster.Name, cluster.Addons)
+		log.Fatalf("cluster %q: no addons with name %q", cluster.Name, cluster.Addons)
 	}
 
 	clusterAsMap := asMap(cluster)
