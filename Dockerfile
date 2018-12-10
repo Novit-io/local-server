@@ -2,13 +2,10 @@
 from golang:1.11.2 as build
 
 env pkg novit.nc/direktil/local-server
-run go get github.com/gobuffalo/packr/packr
 copy vendor /go/src/${pkg}/vendor
 copy cmd    /go/src/${pkg}/cmd
-copy assets /go/src/${pkg}/cmd/dkl-local-server/assets
 workdir /go/src/${pkg}
-run packr -i /go/src/${pkg}/cmd/dkl-local-server \
- && go test ./... \
+run go test ./... \
  && go install ./cmd/...
 
 # ------------------------------------------------------------------------

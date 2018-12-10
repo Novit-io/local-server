@@ -132,13 +132,13 @@ menuentry "Direktil" {
 	}
 
 	copies := []distCopy{
-		{Src: []string{"kernels", ctx.Group.Kernel}, Dst: "vmlinuz"},
-		{Src: []string{"initrd", ctx.Group.Initrd}, Dst: "initrd"},
+		{Src: []string{"kernels", ctx.Host.Kernel}, Dst: "vmlinuz"},
+		{Src: []string{"initrd", ctx.Host.Initrd}, Dst: "initrd"},
 	}
 
 	// layers
 	for _, layer := range cfg.Layers {
-		layerVersion := ctx.Group.Versions[layer]
+		layerVersion := ctx.Host.Versions[layer]
 		if layerVersion == "" {
 			return fmt.Errorf("layer %q not mapped to a version", layer)
 		}

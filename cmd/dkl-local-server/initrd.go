@@ -32,45 +32,6 @@ func renderConfig(w http.ResponseWriter, r *http.Request, ctx *renderContext) er
 	return nil
 }
 
-func renderStaticPods(w http.ResponseWriter, r *http.Request, ctx *renderContext) error {
-	log.Printf("sending static-pods for %q", ctx.Host.Name)
-
-	ba, err := ctx.StaticPods()
-	if err != nil {
-		return err
-	}
-
-	w.Header().Set("Content-Type", "application/yaml") // XXX can also be JSON
-	http.ServeContent(w, r, "static-pods", time.Unix(0, 0), bytes.NewReader(ba))
-
-	return nil
-}
-
-// TODO move somewhere logical
-func renderCtx(w http.ResponseWriter, r *http.Request, ctx *renderContext, what string,
-	create func(out io.Writer, ctx *renderContext) error) error {
-	log.Printf("sending %s for %q", what, ctx.Host.Name)
-
-	tag, err := ctx.Tag()
-	if err != nil {
-		return err
-	}
-
-	// get it or create it
-	content, meta, err := casStore.GetOrCreate(tag, what, func(out io.Writer) error {
-		log.Printf("building %s for %q", what, ctx.Host.Name)
-		return create(out, ctx)
-	})
-
-	if err != nil {
-		return err
-	}
-
-	// serve it
-	http.ServeContent(w, r, what, meta.ModTime(), content)
-	return nil
-}
-
 func buildInitrd(out io.Writer, ctx *renderContext) error {
 	_, cfg, err := ctx.Config()
 
@@ -79,7 +40,7 @@ func buildInitrd(out io.Writer, ctx *renderContext) error {
 	}
 
 	// send initrd basis
-	initrdPath, err := ctx.distFetch("initrd", ctx.Group.Initrd)
+	initrdPath, err := ctx.distFetch("initrd", ctx.Host.Initrd)
 	if err != nil {
 		return err
 	}
@@ -106,7 +67,7 @@ func buildInitrd(out io.Writer, ctx *renderContext) error {
 
 	// - the layers
 	for _, layer := range cfg.Layers {
-		layerVersion := ctx.Group.Versions[layer]
+		layerVersion := ctx.Host.Versions[layer]
 		if layerVersion == "" {
 			return fmt.Errorf("layer %q not mapped to a version", layer)
 		}

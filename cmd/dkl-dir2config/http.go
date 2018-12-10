@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	yaml "gopkg.in/yaml.v2"
 	"novit.nc/direktil/pkg/localconfig"
 )
 
@@ -219,11 +221,16 @@ func serveCluster(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clusterName := p[2]
-	what := p[3]
+
+	p = strings.SplitN(p[3], ".", 2)
+	what := p[0]
+	format := ""
+	if len(p) > 1 {
+		format = p[1]
+	}
 
 	cfg, err := readConfig()
 	if err != nil {
-		log.Print("failed to read config: ", err)
 		http.Error(w, "", http.StatusServiceUnavailable)
 		return
 	}
@@ -242,7 +249,43 @@ func serveCluster(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Write([]byte(cluster.Addons))
+		addons := cluster.Addons
+		if addons == nil {
+			log.Printf("cluster %q: no addons with name %q", clusterName, cluster.Addons)
+			http.NotFound(w, r)
+			return
+		}
+
+		clusterAsMap := asMap(cluster)
+		clusterAsMap["kubernetes_svc_ip"] = cluster.KubernetesSvcIP().String()
+		clusterAsMap["dns_svc_ip"] = cluster.DNSSvcIP().String()
+
+		cm := newConfigMap("cluster-addons")
+
+		for _, addon := range addons {
+			buf := &bytes.Buffer{}
+			err := addon.Execute(buf, clusterAsMap, nil)
+
+			if err != nil {
+				log.Printf("cluster %q: addons %q: failed to render %q: %v",
+					clusterName, cluster.Addons, addon.Name, err)
+				http.Error(w, "", http.StatusServiceUnavailable)
+				return
+			}
+
+			cm.Data[addon.Name] = buf.String()
+		}
+
+		switch format {
+		case "yaml":
+			for name, data := range cm.Data {
+				w.Write([]byte("\n# addon: " + name + "\n---\n\n"))
+				w.Write([]byte(data))
+			}
+
+		default:
+			yaml.NewEncoder(w).Encode(cm)
+		}
 
 	default:
 		http.NotFound(w, r)

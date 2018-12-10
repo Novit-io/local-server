@@ -5,108 +5,73 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
-	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"path"
 	"path/filepath"
 
 	cfsslconfig "github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
+	"github.com/golang/go/src/pkg/html/template"
 	yaml "gopkg.in/yaml.v2"
 
-	"novit.nc/direktil/pkg/clustersconfig"
 	"novit.nc/direktil/pkg/config"
+	"novit.nc/direktil/pkg/localconfig"
 )
 
 type renderContext struct {
-	Host               *clustersconfig.Host
-	Group              *clustersconfig.Group
-	Cluster            *clustersconfig.Cluster
-	Vars               map[string]interface{}
-	ConfigTemplate     *clustersconfig.Template
-	StaticPodsTemplate *clustersconfig.Template
-
-	clusterConfig *clustersconfig.Config
+	Host      *localconfig.Host
+	SSLConfig string
 }
 
-func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ctx *renderContext, err error) {
-	cluster := cfg.Cluster(host.Cluster)
-	if cluster == nil {
-		err = fmt.Errorf("no cluster named %q", host.Cluster)
-		return
+func renderCtx(w http.ResponseWriter, r *http.Request, ctx *renderContext, what string,
+	create func(out io.Writer, ctx *renderContext) error) error {
+	log.Printf("sending %s for %q", what, ctx.Host.Name)
+
+	tag, err := ctx.Tag()
+	if err != nil {
+		return err
 	}
 
-	group := cfg.Group(host.Group)
-	if group == nil {
-		err = fmt.Errorf("no group named %q", host.Group)
-		return
+	// get it or create it
+	content, meta, err := casStore.GetOrCreate(tag, what, func(out io.Writer) error {
+		log.Printf("building %s for %q", what, ctx.Host.Name)
+		return create(out, ctx)
+	})
+
+	if err != nil {
+		return err
 	}
 
-	vars := make(map[string]interface{})
+	// serve it
+	http.ServeContent(w, r, what, meta.ModTime(), content)
+	return nil
+}
 
-	for _, oVars := range []map[string]interface{}{
-		cluster.Vars,
-		group.Vars,
-		host.Vars,
-	} {
-		for k, v := range oVars {
-			vars[k] = v
-		}
-	}
-
+func newRenderContext(host *localconfig.Host, cfg *localconfig.Config) (ctx *renderContext, err error) {
 	return &renderContext{
-		Host:               host,
-		Group:              group,
-		Cluster:            cluster,
-		Vars:               vars,
-		ConfigTemplate:     cfg.ConfigTemplate(group.Config),
-		StaticPodsTemplate: cfg.StaticPodsTemplate(group.StaticPods),
-
-		clusterConfig: cfg,
+		SSLConfig: cfg.SSLConfig,
+		Host:      host,
 	}, nil
 }
 
 func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
-	if ctx.ConfigTemplate == nil {
-		err = notFoundError{fmt.Sprintf("config %q", ctx.Group.Config)}
-		return
-	}
-
-	ctxMap := ctx.asMap()
-
 	secretData, err := ctx.secretData()
 	if err != nil {
 		return
 	}
 
-	templateFuncs := ctx.templateFuncs(secretData, ctxMap)
+	tmpl, err := template.New(ctx.Host.Name + "/config").
+		Funcs(ctx.templateFuncs(secretData)).
+		Parse(ctx.Host.Config)
 
-	render := func(what string, t *clustersconfig.Template) (s string, err error) {
-		buf := &bytes.Buffer{}
-		err = t.Execute(buf, ctxMap, templateFuncs)
-		if err != nil {
-			log.Printf("host %s: failed to render %s [%q]: %v", ctx.Host.Name, what, t.Name, err)
-			return
-		}
-
-		s = buf.String()
+	if err != nil {
 		return
 	}
 
-	extraFuncs := ctx.templateFuncs(secretData, ctxMap)
-
-	extraFuncs["static_pods"] = func(name string) (string, error) {
-		t := ctx.clusterConfig.StaticPodsTemplate(name)
-		if t == nil {
-			return "", fmt.Errorf("no static pods template named %q", name)
-		}
-
-		return render("static pods", t)
-	}
-
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err = ctx.ConfigTemplate.Execute(buf, ctxMap, extraFuncs); err != nil {
+	if err = tmpl.Execute(buf, nil); err != nil {
 		return
 	}
 
@@ -131,10 +96,10 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 func (ctx *renderContext) secretData() (data *SecretData, err error) {
 	var sslCfg *cfsslconfig.Config
 
-	if ctx.clusterConfig.SSLConfig == "" {
+	if len(ctx.SSLConfig) == 0 {
 		sslCfg = &cfsslconfig.Config{}
 	} else {
-		sslCfg, err = cfsslconfig.LoadConfig([]byte(ctx.clusterConfig.SSLConfig))
+		sslCfg, err = cfsslconfig.LoadConfig([]byte(ctx.SSLConfig))
 		if err != nil {
 			return
 		}
@@ -144,71 +109,19 @@ func (ctx *renderContext) secretData() (data *SecretData, err error) {
 	return
 }
 
-func (ctx *renderContext) StaticPods() (ba []byte, err error) {
-	secretData, err := ctx.secretData()
-	if err != nil {
-		return
-	}
-
-	if ctx.StaticPodsTemplate == nil {
-		err = notFoundError{fmt.Sprintf("static-pods %q", ctx.Group.StaticPods)}
-		return
-	}
-
-	ctxMap := ctx.asMap()
-
-	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err = ctx.StaticPodsTemplate.Execute(buf, ctxMap, ctx.templateFuncs(secretData, ctxMap)); err != nil {
-		return
-	}
-
-	if secretData.Changed() {
-		err = secretData.Save()
-		if err != nil {
-			return
-		}
-	}
-
-	ba = buf.Bytes()
-	return
-}
-
-func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[string]interface{}) map[string]interface{} {
-	cluster := ctx.Cluster.Name
-
-	getKeyCert := func(name string) (kc *KeyCert, err error) {
-		req := ctx.clusterConfig.CSR(name)
-		if req == nil {
-			err = errors.New("no such certificate request")
-			return
-		}
-
-		if req.CA == "" {
-			err = errors.New("CA not defined")
-			return
-		}
-
-		buf := &bytes.Buffer{}
-		err = req.Execute(buf, ctxMap, nil)
-		if err != nil {
-			return
-		}
-
+func (ctx *renderContext) templateFuncs(secretData *SecretData) map[string]interface{} {
+	getKeyCert := func(cluster, caName, name, profile, label, reqJson string) (kc *KeyCert, err error) {
 		certReq := &csr.CertificateRequest{
 			KeyRequest: csr.NewBasicKeyRequest(),
 		}
 
-		err = json.Unmarshal(buf.Bytes(), certReq)
+		err = json.Unmarshal([]byte(reqJson), certReq)
 		if err != nil {
-			log.Print("unmarshal failed on: ", buf)
+			log.Print("CSR unmarshal failed on: ", reqJson)
 			return
 		}
 
-		if req.PerHost {
-			name = name + "/" + ctx.Host.Name
-		}
-
-		return secretData.KeyCert(cluster, req.CA, name, req.Profile, req.Label, certReq)
+		return secretData.KeyCert(cluster, caName, name, profile, label, certReq)
 	}
 
 	asYaml := func(v interface{}) (string, error) {
@@ -221,11 +134,11 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 	}
 
 	return map[string]interface{}{
-		"token": func(name string) (s string, err error) {
+		"token": func(cluster, name string) (s string, err error) {
 			return secretData.Token(cluster, name)
 		},
 
-		"ca_key": func(name string) (s string, err error) {
+		"ca_key": func(cluster, name string) (s string, err error) {
 			ca, err := secretData.CA(cluster, name)
 			if err != nil {
 				return
@@ -235,7 +148,7 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 			return
 		},
 
-		"ca_crt": func(name string) (s string, err error) {
+		"ca_crt": func(cluster, name string) (s string, err error) {
 			ca, err := secretData.CA(cluster, name)
 			if err != nil {
 				return
@@ -245,13 +158,13 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 			return
 		},
 
-		"ca_dir": func(name string) (s string, err error) {
+		"ca_dir": func(cluster, name string) (s string, err error) {
 			ca, err := secretData.CA(cluster, name)
 			if err != nil {
 				return
 			}
 
-			dir := "/" + path.Join("etc", "tls-ca", name)
+			dir := "/etc/tls-ca/" + name
 
 			return asYaml([]config.FileDef{
 				{
@@ -267,8 +180,8 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 			})
 		},
 
-		"tls_key": func(name string) (s string, err error) {
-			kc, err := getKeyCert(name)
+		"tls_key": func(cluster, caName, name, profile, label, reqJson string) (s string, err error) {
+			kc, err := getKeyCert(cluster, caName, name, profile, label, reqJson)
 			if err != nil {
 				return
 			}
@@ -277,8 +190,8 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 			return
 		},
 
-		"tls_crt": func(name string) (s string, err error) {
-			kc, err := getKeyCert(name)
+		"tls_crt": func(cluster, caName, name, profile, label, reqJson string) (s string, err error) {
+			kc, err := getKeyCert(cluster, caName, name, profile, label, reqJson)
 			if err != nil {
 				return
 			}
@@ -287,24 +200,18 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 			return
 		},
 
-		"tls_dir": func(name string) (s string, err error) {
-			csr := ctx.clusterConfig.CSR(name)
-			if csr == nil {
-				err = fmt.Errorf("no CSR named %q", name)
-				return
-			}
-
-			ca, err := secretData.CA(cluster, csr.CA)
+		"tls_dir": func(cluster, caName, name, profile, label, reqJson string) (s string, err error) {
+			ca, err := secretData.CA(cluster, caName)
 			if err != nil {
 				return
 			}
 
-			kc, err := getKeyCert(name)
+			kc, err := getKeyCert(cluster, caName, name, profile, label, reqJson)
 			if err != nil {
 				return
 			}
 
-			dir := "/" + path.Join("etc", "tls", name)
+			dir := "/etc/tls/" + name
 
 			return asYaml([]config.FileDef{
 				{
@@ -323,31 +230,6 @@ func (ctx *renderContext) templateFuncs(secretData *SecretData, ctxMap map[strin
 					Content: string(kc.Key),
 				},
 			})
-		},
-
-		"hosts_of_group": func() (hosts []interface{}) {
-			hosts = make([]interface{}, 0)
-
-			for _, host := range ctx.clusterConfig.Hosts {
-				if host.Group != ctx.Host.Group {
-					continue
-				}
-
-				hosts = append(hosts, asMap(host))
-			}
-
-			return hosts
-		},
-
-		"hosts_of_group_count": func() (count int) {
-			for _, host := range ctx.clusterConfig.Hosts {
-				if host.Group != ctx.Host.Group {
-					continue
-				}
-
-				count++
-			}
-			return
 		},
 	}
 }
@@ -373,17 +255,6 @@ func (ctx *renderContext) Tag() (string, error) {
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
-func (ctx *renderContext) asMap() map[string]interface{} {
-	result := asMap(ctx)
-
-	// also expand cluster:
-	cluster := result["cluster"].(map[interface{}]interface{})
-	cluster["kubernetes_svc_ip"] = ctx.Cluster.KubernetesSvcIP().String()
-	cluster["dns_svc_ip"] = ctx.Cluster.DNSSvcIP().String()
-
-	return result
 }
 
 func asMap(v interface{}) map[string]interface{} {

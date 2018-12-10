@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,18 +17,6 @@ func rmTempFile(f *os.File) {
 }
 
 func buildBootTar(out io.Writer, ctx *renderContext) (err error) {
-	grubCfg, err := ioutil.TempFile(os.TempDir(), "grub.cfg-")
-	if err != nil {
-		return
-	}
-	defer rmTempFile(grubCfg)
-
-	_, err = grubCfg.Write(asset("grub.cfg"))
-	if err != nil {
-		return
-	}
-	grubCfg.Close()
-
 	arch := tar.NewWriter(out)
 	defer arch.Close()
 
@@ -58,13 +45,13 @@ func buildBootTar(out io.Writer, ctx *renderContext) (err error) {
 
 	// kernel and initrd
 	copies := []distCopy{
-		{Src: []string{"kernels", ctx.Group.Kernel}, Dst: "current/vmlinuz"},
-		{Src: []string{"initrd", ctx.Group.Initrd}, Dst: "current/initrd"},
+		{Src: []string{"kernels", ctx.Host.Kernel}, Dst: "current/vmlinuz"},
+		{Src: []string{"initrd", ctx.Host.Initrd}, Dst: "current/initrd"},
 	}
 
 	// layers
 	for _, layer := range cfg.Layers {
-		layerVersion := ctx.Group.Versions[layer]
+		layerVersion := ctx.Host.Versions[layer]
 		if layerVersion == "" {
 			return fmt.Errorf("layer %q not mapped to a version", layer)
 		}
