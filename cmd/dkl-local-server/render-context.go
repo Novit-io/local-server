@@ -49,7 +49,29 @@ func renderCtx(w http.ResponseWriter, r *http.Request, ctx *renderContext, what 
 	return nil
 }
 
+var prevSSLConfig = "-"
+
 func newRenderContext(host *localconfig.Host, cfg *localconfig.Config) (ctx *renderContext, err error) {
+	if prevSSLConfig != cfg.SSLConfig {
+		var sslCfg *cfsslconfig.Config
+
+		if len(cfg.SSLConfig) == 0 {
+			sslCfg = &cfsslconfig.Config{}
+		} else {
+			sslCfg, err = cfsslconfig.LoadConfig([]byte(cfg.SSLConfig))
+			if err != nil {
+				return
+			}
+		}
+
+		err = loadSecretData(sslCfg)
+		if err != nil {
+			return
+		}
+
+		prevSSLConfig = cfg.SSLConfig
+	}
+
 	return &renderContext{
 		SSLConfig: cfg.SSLConfig,
 		Host:      host,
@@ -57,13 +79,8 @@ func newRenderContext(host *localconfig.Host, cfg *localconfig.Config) (ctx *ren
 }
 
 func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
-	secretData, err := ctx.secretData()
-	if err != nil {
-		return
-	}
-
 	tmpl, err := template.New(ctx.Host.Name + "/config").
-		Funcs(ctx.templateFuncs(secretData)).
+		Funcs(ctx.templateFuncs()).
 		Parse(ctx.Host.Config)
 
 	if err != nil {
@@ -93,23 +110,7 @@ func (ctx *renderContext) Config() (ba []byte, cfg *config.Config, err error) {
 	return
 }
 
-func (ctx *renderContext) secretData() (data *SecretData, err error) {
-	var sslCfg *cfsslconfig.Config
-
-	if len(ctx.SSLConfig) == 0 {
-		sslCfg = &cfsslconfig.Config{}
-	} else {
-		sslCfg, err = cfsslconfig.LoadConfig([]byte(ctx.SSLConfig))
-		if err != nil {
-			return
-		}
-	}
-
-	data, err = loadSecretData(sslCfg)
-	return
-}
-
-func (ctx *renderContext) templateFuncs(secretData *SecretData) map[string]interface{} {
+func (ctx *renderContext) templateFuncs() map[string]interface{} {
 	getKeyCert := func(cluster, caName, name, profile, label, reqJson string) (kc *KeyCert, err error) {
 		certReq := &csr.CertificateRequest{
 			KeyRequest: csr.NewBasicKeyRequest(),

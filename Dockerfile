@@ -1,8 +1,9 @@
 # ------------------------------------------------------------------------
-from golang:1.11.2 as build
+from golang:1.11.4 as build
 
 env pkg novit.nc/direktil/local-server
 copy vendor /go/src/${pkg}/vendor
+copy pkg    /go/src/${pkg}/pkg
 copy cmd    /go/src/${pkg}/cmd
 workdir /go/src/${pkg}
 run go test ./... \

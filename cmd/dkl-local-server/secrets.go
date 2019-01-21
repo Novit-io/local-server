@@ -10,18 +10,26 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/initca"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
+var (
+	secretData *SecretData
+)
+
 type SecretData struct {
+	l sync.Mutex
+
 	clusters map[string]*ClusterSecrets
 	changed  bool
 	config   *config.Config
@@ -45,27 +53,36 @@ type KeyCert struct {
 	ReqHash string
 }
 
-func loadSecretData(config *config.Config) (*SecretData, error) {
+func secretDataPath() string {
+	return filepath.Join(*dataDir, "secret-data.json")
+}
+
+func loadSecretData(config *config.Config) (err error) {
+	log.Info("Loading secret data")
+
 	sd := &SecretData{
 		clusters: make(map[string]*ClusterSecrets),
 		changed:  false,
 		config:   config,
 	}
 
-	ba, err := ioutil.ReadFile(filepath.Join(*dataDir, "secret-data.json"))
+	ba, err := ioutil.ReadFile(secretDataPath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			sd.changed = true
-			return sd, nil
+			err = nil
+			secretData = sd
+			return
 		}
-		return nil, err
+		return
 	}
 
-	if err := json.Unmarshal(ba, &sd.clusters); err != nil {
-		return nil, err
+	if err = json.Unmarshal(ba, &sd.clusters); err != nil {
+		return
 	}
 
-	return sd, nil
+	secretData = sd
+	return
 }
 
 func (sd *SecretData) Changed() bool {
@@ -73,11 +90,15 @@ func (sd *SecretData) Changed() bool {
 }
 
 func (sd *SecretData) Save() error {
+	sd.l.Lock()
+	defer sd.l.Unlock()
+
+	log.Info("Saving secret data")
 	ba, err := json.Marshal(sd.clusters)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filepath.Join(*dataDir, "secret-data.json"), ba, 0600)
+	return ioutil.WriteFile(secretDataPath(), ba, 0600)
 }
 
 func (sd *SecretData) cluster(name string) (cs *ClusterSecrets) {
@@ -85,6 +106,11 @@ func (sd *SecretData) cluster(name string) (cs *ClusterSecrets) {
 	if ok {
 		return
 	}
+
+	sd.l.Lock()
+	defer sd.l.Unlock()
+
+	log.Info("secret-data: new cluster: ", name)
 
 	cs = &ClusterSecrets{
 		CAs:    make(map[string]*CA),
@@ -102,6 +128,11 @@ func (sd *SecretData) Token(cluster, name string) (token string, err error) {
 	if token != "" {
 		return
 	}
+
+	sd.l.Lock()
+	defer sd.l.Unlock()
+
+	log.Info("secret-data: new token in cluster ", cluster, ": ", name)
 
 	b := make([]byte, 16)
 	_, err = rand.Read(b)
@@ -123,6 +154,11 @@ func (sd *SecretData) CA(cluster, name string) (ca *CA, err error) {
 	if ok {
 		return
 	}
+
+	sd.l.Lock()
+	defer sd.l.Unlock()
+
+	log.Info("secret-data: new CA in cluster ", cluster, ": ", name)
 
 	req := &csr.CertificateRequest{
 		CN: "Direktil Local Server",
@@ -191,7 +227,15 @@ func (sd *SecretData) KeyCert(cluster, caName, name, profile, label string, req 
 	kc, ok := ca.Signed[name]
 	if ok && rh == kc.ReqHash {
 		return
+	} else if ok {
+		log.Infof("secret-data: cluster %s: CA %s: CSR changed for %s: hash=%q previous=%q",
+			cluster, caName, name, rh, kc.ReqHash)
+	} else {
+		log.Infof("secret-data: cluster %s: CA %s: new CSR for %s", cluster, caName, name)
 	}
+
+	sd.l.Lock()
+	defer sd.l.Unlock()
 
 	sgr, err := ca.Signer(sd.config.Signing)
 	if err != nil {

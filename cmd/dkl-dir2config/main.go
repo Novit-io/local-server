@@ -54,7 +54,6 @@ func main() {
 
 		log.Print("rendering host ", host.Name)
 		ctx, err := newRenderContext(host, src)
-		log.Printf("  ctx: %p", ctx)
 
 		if err != nil {
 			log.Fatal("failed to create render context for host ", host.Name, ": ", err)

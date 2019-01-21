@@ -31,6 +31,12 @@ func cleanCAS() error {
 	activeTags := make([]string, len(cfg.Hosts))
 
 	for i, host := range cfg.Hosts {
+		// FIXME ugly hack, same as in dir2config
+		cfg, err := readConfig()
+		if err != nil {
+			return err
+		}
+
 		ctx, err := newRenderContext(host, cfg)
 		if err != nil {
 			return err
