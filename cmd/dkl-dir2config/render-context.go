@@ -23,6 +23,7 @@ type renderContext struct {
 
 func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ctx *renderContext, err error) {
 	cluster := cfg.Cluster(host.Cluster)
+	log.Printf("===> newRenderContext: cluster: %v", cluster.Name)
 	if cluster == nil {
 		err = fmt.Errorf("no cluster named %q", host.Cluster)
 		return
@@ -68,6 +69,7 @@ func (ctx *renderContext) Config() string {
 	templateFuncs := ctx.templateFuncs(ctxMap)
 
 	render := func(what string, t *clustersconfig.Template) (s string, err error) {
+		log.Printf("render %q %p", what, t)
 		buf := &bytes.Buffer{}
 		err = t.Execute(buf, ctxMap, templateFuncs)
 		if err != nil {
@@ -118,6 +120,8 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 	cluster := ctx.Cluster.Name
 
 	getKeyCert := func(name, funcName string) (s string, err error) {
+		log.Print("=====> getKeyCert ", funcName, ": cluster: ", cluster)
+
 		req := ctx.clusterConfig.CSR(name)
 		if req == nil {
 			err = fmt.Errorf("no certificate request named %q", name)
@@ -169,6 +173,7 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 		},
 
 		"tls_dir": func(name string) (s string, err error) {
+			log.Printf("CTX: %p", ctx)
 			return getKeyCert(name, "tls_dir")
 		},
 

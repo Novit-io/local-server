@@ -14,21 +14,27 @@ import (
 )
 
 var (
+	dir = flag.String("in", ".", "Source directory")
+
 	src *clustersconfig.Config
 	dst *localconfig.Config
 )
 
-func main() {
-	dir := flag.String("in", ".", "Source directory")
-	outPath := flag.String("out", "config.yaml", "Output file")
-	flag.Parse()
-
+func loadSrc() {
 	var err error
 
 	src, err = clustersconfig.FromDir(*dir)
 	if err != nil {
 		log.Fatal("failed to load config from dir: ", err)
 	}
+
+}
+
+func main() {
+	outPath := flag.String("out", "config.yaml", "Output file")
+	flag.Parse()
+
+	loadSrc()
 
 	dst = &localconfig.Config{
 		SSLConfig: src.SSLConfig,
@@ -44,7 +50,11 @@ func main() {
 
 	// ----------------------------------------------------------------------
 	for _, host := range src.Hosts {
+		loadSrc() // FIXME ugly fix of some template caching or something
+
+		log.Print("rendering host ", host.Name)
 		ctx, err := newRenderContext(host, src)
+		log.Printf("  ctx: %p", ctx)
 
 		if err != nil {
 			log.Fatal("failed to create render context for host ", host.Name, ": ", err)
