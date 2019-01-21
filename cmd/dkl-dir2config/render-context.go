@@ -173,7 +173,7 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 		},
 
 		"tls_dir": func(name string) (s string, err error) {
-			log.Printf("CTX: %p", ctx)
+			log.Printf("  CTX: %p", ctx)
 			return getKeyCert(name, "tls_dir")
 		},
 
