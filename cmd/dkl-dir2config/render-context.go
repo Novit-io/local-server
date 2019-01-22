@@ -135,12 +135,22 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 			return
 		}
 
+		key := name
 		if req.PerHost {
-			name = name + "/" + ctx.Host.Name
+			key += "/" + ctx.Host.Name
 		}
 
-		s = fmt.Sprintf("{{ %s %q %q %q %q %q %q }}", funcName,
-			cluster, req.CA, name, req.Profile, req.Label, buf.String())
+		if funcName == "tls_dir" {
+			// needs the dir name
+			dir := "/etc/tls/" + name
+
+			s = fmt.Sprintf("{{ %s %q %q %q %q %q %q %q }}", funcName,
+				dir, cluster, req.CA, key, req.Profile, req.Label, buf.String())
+
+		} else {
+			s = fmt.Sprintf("{{ %s %q %q %q %q %q %q }}", funcName,
+				cluster, req.CA, key, req.Profile, req.Label, buf.String())
+		}
 		return
 	}
 

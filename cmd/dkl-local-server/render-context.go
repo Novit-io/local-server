@@ -201,7 +201,7 @@ func (ctx *renderContext) templateFuncs() map[string]interface{} {
 			return
 		},
 
-		"tls_dir": func(cluster, caName, name, profile, label, reqJson string) (s string, err error) {
+		"tls_dir": func(dir, cluster, caName, name, profile, label, reqJson string) (s string, err error) {
 			ca, err := secretData.CA(cluster, caName)
 			if err != nil {
 				return
@@ -211,8 +211,6 @@ func (ctx *renderContext) templateFuncs() map[string]interface{} {
 			if err != nil {
 				return
 			}
-
-			dir := "/etc/tls/" + name
 
 			return asYaml([]config.FileDef{
 				{
