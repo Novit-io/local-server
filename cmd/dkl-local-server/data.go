@@ -12,8 +12,10 @@ var (
 	configFromDir = flag.String("config-from-dir", "", "Build configuration from this directory")
 )
 
-func readConfig() (config *localconfig.Config, err error) {
-	configFile := filepath.Join(*dataDir, "config.yaml")
+func configFilePath() string {
+	return filepath.Join(*dataDir, "config.yaml")
+}
 
-	return localconfig.FromFile(configFile)
+func readConfig() (config *localconfig.Config, err error) {
+	return localconfig.FromFile(configFilePath())
 }

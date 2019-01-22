@@ -36,6 +36,8 @@ func main() {
 	// by default, serve a host resource by its IP
 	http.HandleFunc("/", serveHostByIP)
 
+	http.HandleFunc("/configs", uploadConfig)
+
 	http.HandleFunc("/hosts", serveHosts)
 	http.HandleFunc("/hosts/", serveHost)
 

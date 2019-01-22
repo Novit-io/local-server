@@ -3,11 +3,16 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"novit.nc/direktil/pkg/localconfig"
 )
@@ -247,4 +252,60 @@ func serveCluster(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+func uploadConfig(w http.ResponseWriter, r *http.Request) {
+	if !authorizeHosts(r) { // FIXME admin token instead
+		forbidden(w, r)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.NotFound(w, r)
+		return
+	}
+
+	out, err := ioutil.TempFile(*dataDir, ".config-upload")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	defer os.Remove(out.Name())
+
+	func() {
+		defer out.Close()
+		if _, err = io.Copy(out, r.Body); err != nil {
+			writeError(w, err)
+			return
+		}
+	}()
+
+	archivesPath := filepath.Join(*dataDir, "archives")
+	cfgPath := configFilePath()
+
+	err = os.MkdirAll(archivesPath, 0700)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	backupPath := filepath.Join(archivesPath, "config."+time.Now().Format(time.RFC3339)+".yaml")
+	err = os.Rename(cfgPath, backupPath)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	err = os.Rename(out.Name(), configFilePath())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+}
+
+func writeError(w http.ResponseWriter, err error) {
+	log.Print("request failed: ", err)
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 }
