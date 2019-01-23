@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"flag"
 	"io"
@@ -273,13 +274,12 @@ func uploadConfig(w http.ResponseWriter, r *http.Request) {
 
 	defer os.Remove(out.Name())
 
-	func() {
-		defer out.Close()
-		if _, err = io.Copy(out, r.Body); err != nil {
-			writeError(w, err)
-			return
-		}
-	}()
+	_, err = io.Copy(out, r.Body)
+	out.Close()
+	if err != nil {
+		writeError(w, err)
+		return
+	}
 
 	archivesPath := filepath.Join(*dataDir, "archives")
 	cfgPath := configFilePath()
@@ -290,14 +290,38 @@ func uploadConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	backupPath := filepath.Join(archivesPath, "config."+time.Now().Format(time.RFC3339)+".yaml")
-	err = os.Rename(cfgPath, backupPath)
+	err = func() (err error) {
+		backupPath := filepath.Join(archivesPath, "config."+time.Now().Format(time.RFC3339)+".yaml.gz")
+
+		bck, err := os.Create(backupPath)
+		if err != nil {
+			return
+		}
+
+		defer bck.Close()
+
+		in, err := os.Open(cfgPath)
+		if err != nil {
+			return
+		}
+
+		gz, err := gzip.NewWriterLevel(bck, 2)
+		if err != nil {
+			return
+		}
+
+		_, err = io.Copy(gz, in)
+		gz.Close()
+		in.Close()
+		return
+	}()
+
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 
-	err = os.Rename(out.Name(), configFilePath())
+	err = os.Rename(out.Name(), cfgPath)
 	if err != nil {
 		writeError(w, err)
 		return
