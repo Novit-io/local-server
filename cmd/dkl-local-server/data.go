@@ -8,8 +8,7 @@ import (
 )
 
 var (
-	dataDir       = flag.String("data", "/var/lib/direktil", "Data dir")
-	configFromDir = flag.String("config-from-dir", "", "Build configuration from this directory")
+	dataDir = flag.String("data", "/var/lib/direktil", "Data dir")
 )
 
 func configFilePath() string {

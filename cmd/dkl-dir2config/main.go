@@ -100,6 +100,10 @@ func main() {
 }
 
 func renderAddons(cluster *clustersconfig.Cluster) string {
+	if len(cluster.Addons) == 0 {
+		return ""
+	}
+
 	addons := src.Addons[cluster.Addons]
 	if addons == nil {
 		log.Fatalf("cluster %q: no addons with name %q", cluster.Name, cluster.Addons)
