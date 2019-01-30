@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------
-from golang:1.11.4 as build
+from golang:1.11.5 as build
 
 env pkg novit.nc/direktil/local-server
 copy vendor /go/src/${pkg}/vendor
