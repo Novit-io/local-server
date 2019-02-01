@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"novit.nc/direktil/pkg/localconfig"
 )
@@ -273,7 +272,7 @@ func uploadConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = func() (err error) {
-		backupPath := filepath.Join(archivesPath, "config."+time.Now().Format(time.RFC3339)+".yaml.gz")
+		backupPath := filepath.Join(archivesPath, "config."+ulid()+".yaml.gz")
 
 		bck, err := os.Create(backupPath)
 		if err != nil {
