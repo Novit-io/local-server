@@ -3,10 +3,8 @@ package main
 import (
 	"flag"
 	"log"
-	"net"
 	"net/http"
 	"regexp"
-	"strings"
 
 	"novit.nc/direktil/pkg/localconfig"
 )
@@ -16,49 +14,6 @@ var (
 
 	trustXFF = flag.Bool("trust-xff", true, "Trust the X-Forwarded-For header")
 )
-
-func serveHostByIP(w http.ResponseWriter, r *http.Request) {
-	host, cfg := hostByIP(w, r)
-	if host == nil {
-		return
-	}
-
-	what := strings.TrimLeft(r.URL.Path, "/")
-
-	renderHost(w, r, what, host, cfg)
-}
-
-func hostByIP(w http.ResponseWriter, r *http.Request) (*localconfig.Host, *localconfig.Config) {
-	remoteAddr := r.RemoteAddr
-
-	if *trustXFF {
-		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			remoteAddr = strings.Split(xff, ",")[0]
-		}
-	}
-
-	hostIP, _, err := net.SplitHostPort(remoteAddr)
-
-	if err != nil {
-		hostIP = remoteAddr
-	}
-
-	cfg, err := readConfig()
-	if err != nil {
-		http.Error(w, "", http.StatusServiceUnavailable)
-		return nil, nil
-	}
-
-	host := cfg.HostByIP(hostIP)
-
-	if host == nil {
-		log.Print("no host found for IP ", hostIP)
-		http.NotFound(w, r)
-		return nil, nil
-	}
-
-	return host, cfg
-}
 
 func renderHost(w http.ResponseWriter, r *http.Request, what string, host *localconfig.Host, cfg *localconfig.Config) {
 	ctx, err := newRenderContext(host, cfg)
@@ -118,10 +73,4 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *local
 			http.Error(w, "", http.StatusServiceUnavailable)
 		}
 	}
-}
-
-func writeError(w http.ResponseWriter, err error) {
-	log.Print("request failed: ", err)
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 }

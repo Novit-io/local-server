@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -12,31 +11,27 @@ import (
 )
 
 func wsUploadConfig(req *restful.Request, resp *restful.Response) {
-	r := req.Request
-	w := resp.ResponseWriter
+	body := req.Request.Body
 
-	if !authorizeAdmin(r) {
-		forbidden(w, r)
-		return
+	err := writeNewConfig(body)
+	body.Close()
+
+	if err != nil {
+		wsError(resp, err)
 	}
+}
 
-	if r.Method != "POST" {
-		http.NotFound(w, r)
-		return
-	}
-
+func writeNewConfig(reader io.Reader) (err error) {
 	out, err := ioutil.TempFile(*dataDir, ".config-upload")
 	if err != nil {
-		writeError(w, err)
 		return
 	}
 
 	defer os.Remove(out.Name())
 
-	_, err = io.Copy(out, r.Body)
+	_, err = io.Copy(out, req.Request.Body)
 	out.Close()
 	if err != nil {
-		writeError(w, err)
 		return
 	}
 
@@ -45,44 +40,36 @@ func wsUploadConfig(req *restful.Request, resp *restful.Response) {
 
 	err = os.MkdirAll(archivesPath, 0700)
 	if err != nil {
-		writeError(w, err)
 		return
 	}
 
-	err = func() (err error) {
-		backupPath := filepath.Join(archivesPath, "config."+ulid()+".yaml.gz")
+	backupPath := filepath.Join(archivesPath, "config."+ulid()+".yaml.gz")
 
-		bck, err := os.Create(backupPath)
-		if err != nil {
-			return
-		}
-
-		defer bck.Close()
-
-		in, err := os.Open(cfgPath)
-		if err != nil {
-			return
-		}
-
-		gz, err := gzip.NewWriterLevel(bck, 2)
-		if err != nil {
-			return
-		}
-
-		_, err = io.Copy(gz, in)
-		gz.Close()
-		in.Close()
+	bck, err := os.Create(backupPath)
+	if err != nil {
 		return
-	}()
+	}
+
+	defer bck.Close()
+
+	in, err := os.Open(cfgPath)
+	if err != nil {
+		return
+	}
+
+	gz, err := gzip.NewWriterLevel(bck, 2)
+	if err != nil {
+		return
+	}
+
+	_, err = io.Copy(gz, in)
+	gz.Close()
+	in.Close()
 
 	if err != nil {
-		writeError(w, err)
 		return
 	}
 
 	err = os.Rename(out.Name(), cfgPath)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
+	return
 }
