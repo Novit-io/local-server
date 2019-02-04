@@ -19,8 +19,9 @@ func Setup(addWebServices func()) {
 	addWebServices()
 
 	SetupHealth()
-	SetupOpenAPI()
 	SetupCORSWildcard()
+
+	SetupOpenAPI()
 }
 
 func SetupHealth() {

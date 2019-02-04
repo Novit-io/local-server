@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"log"
 	"net"
@@ -61,56 +60,6 @@ func hostByIP(w http.ResponseWriter, r *http.Request) (*localconfig.Host, *local
 	return host, cfg
 }
 
-func serveHosts(w http.ResponseWriter, r *http.Request) {
-	if !authorizeHosts(r) {
-		forbidden(w, r)
-		return
-	}
-
-	cfg, err := readConfig()
-	if err != nil {
-		http.Error(w, "", http.StatusServiceUnavailable)
-		return
-	}
-
-	renderJSON(w, cfg.Hosts)
-}
-
-func serveHost(w http.ResponseWriter, r *http.Request) {
-	if !authorizeHosts(r) {
-		forbidden(w, r)
-		return
-	}
-
-	match := reHost.FindStringSubmatch(r.URL.Path)
-	if match == nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	hostName, what := match[1], match[2]
-
-	cfg, err := readConfig()
-	if err != nil {
-		http.Error(w, "", http.StatusServiceUnavailable)
-		return
-	}
-
-	host := cfg.Host(hostName)
-
-	if host == nil {
-		host = cfg.HostByMAC(hostName)
-	}
-
-	if host == nil {
-		log.Printf("no host with name or MAC %q", hostName)
-		http.NotFound(w, r)
-		return
-	}
-
-	renderHost(w, r, what, host, cfg)
-}
-
 func renderHost(w http.ResponseWriter, r *http.Request, what string, host *localconfig.Host, cfg *localconfig.Config) {
 	ctx, err := newRenderContext(host, cfg)
 	if err != nil {
@@ -168,66 +117,6 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *local
 			log.Printf("host %s: %s: failed to render: %v", what, host.Name, err)
 			http.Error(w, "", http.StatusServiceUnavailable)
 		}
-	}
-}
-
-func renderJSON(w http.ResponseWriter, v interface{}) {
-	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(v)
-}
-
-func serveClusters(w http.ResponseWriter, r *http.Request) {
-	cfg, err := readConfig()
-	if err != nil {
-		http.Error(w, "", http.StatusServiceUnavailable)
-		return
-	}
-
-	clusterNames := make([]string, len(cfg.Clusters))
-	for i, cluster := range cfg.Clusters {
-		clusterNames[i] = cluster.Name
-	}
-
-	renderJSON(w, clusterNames)
-}
-
-func serveCluster(w http.ResponseWriter, r *http.Request) {
-	// "/clusters/<name>/<what>" split => "", "clusters", "<name>", "<what>"
-	p := strings.Split(r.URL.Path, "/")
-
-	if len(p) != 4 {
-		http.NotFound(w, r)
-		return
-	}
-
-	clusterName := p[2]
-	what := p[3]
-
-	cfg, err := readConfig()
-	if err != nil {
-		log.Print("failed to read config: ", err)
-		http.Error(w, "", http.StatusServiceUnavailable)
-		return
-	}
-
-	cluster := cfg.Cluster(clusterName)
-	if cluster == nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	switch what {
-	case "addons":
-		if len(cluster.Addons) == 0 {
-			log.Printf("cluster %q has no addons defined", clusterName)
-			http.NotFound(w, r)
-			return
-		}
-
-		w.Write([]byte(cluster.Addons))
-
-	default:
-		http.NotFound(w, r)
 	}
 }
 

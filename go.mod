@@ -6,20 +6,26 @@ require (
 	github.com/coreos/etcd v3.3.11+incompatible // indirect
 	github.com/emicklei/go-restful v2.8.1+incompatible
 	github.com/emicklei/go-restful-openapi v1.0.0
+	github.com/go-openapi/jsonpointer v0.18.0 // indirect
+	github.com/go-openapi/jsonreference v0.18.0 // indirect
 	github.com/go-openapi/spec v0.18.0 // indirect
-	github.com/gobuffalo/events v1.2.0 // indirect
-	github.com/gobuffalo/meta v0.0.0-20190126124307-c8fb6f4eb5a9 // indirect
-	github.com/gobuffalo/packr v1.21.9 // indirect
-	github.com/gofrs/uuid v3.2.0+incompatible // indirect
-	github.com/google/certificate-transparency-go v1.0.21
+	github.com/go-openapi/swag v0.18.0 // indirect
+	github.com/gobuffalo/buffalo-plugins v1.12.1 // indirect
+	github.com/google/certificate-transparency-go v1.0.21 // indirect
+	github.com/json-iterator/go v1.1.5 // indirect
+	github.com/markbates/going v1.0.3 // indirect
+	github.com/mcluseau/go-swagger-ui v0.0.0-20190204025501-38c0b18f1edd
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/oklog/ulid v1.3.1
 	github.com/pierrec/lz4 v2.0.5+incompatible
+	github.com/spf13/afero v1.2.1 // indirect
 	github.com/ugorji/go/codec v0.0.0-20190128213124-ee1426cffec0 // indirect
-	golang.org/x/crypto v0.0.0-20190129210102-ccddf3741a0c
-	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
-	golang.org/x/sys v0.0.0-20190129075346-302c3dd5f1cc // indirect
-	golang.org/x/tools v0.0.0-20190130015043-a06a922acc1b // indirect
+	golang.org/x/crypto v0.0.0-20190131182504-b8fe1690c613 // indirect
+	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3 // indirect
+	golang.org/x/sys v0.0.0-20190203050204-7ae0202eb74c // indirect
+	golang.org/x/tools v0.0.0-20190202235157-7414d4c1f71c // indirect
 	gopkg.in/yaml.v2 v2.2.2
-	k8s.io/apimachinery v0.0.0-20190126155707-0e6dcdd1b5ce
+	k8s.io/apimachinery v0.0.0-20190201131811-df262fa1a1ba
 	novit.nc/direktil/pkg v0.0.0-20181210211743-9dc80cd34b09
 )

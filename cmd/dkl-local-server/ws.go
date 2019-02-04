@@ -1,35 +1,51 @@
 package main
 
 import (
-	"compress/gzip"
-	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/emicklei/go-restful"
+	"novit.nc/direktil/pkg/localconfig"
 )
 
 func buildWS() *restful.WebService {
 	ws := &restful.WebService{}
 
-	ws.Route(ws.POST("/configs").To(wsUploadConfig))
+	// configs API
+	ws.Route(ws.POST("/configs").Filter(adminAuth).To(wsUploadConfig).
+		Doc("Upload a new current configuration, archiving the previous one"))
+
+	// clusters API
+	ws.Route(ws.GET("/clusters").Filter(adminAuth).To(wsListClusters).
+		Doc("List clusters"))
+	ws.Route(ws.GET("/clusters/{cluster-name}").Filter(adminAuth).To(wsCluster).
+		Doc("Get cluster details"))
+	ws.Route(ws.GET("/clusters/{cluster-name}/addons").Filter(adminAuth).To(wsClusterAddons).
+		Doc("Get cluster addons").
+		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusNotFound, "The cluster does not exists or does not have addons defined", nil))
+
+	// hosts API
+	ws.Route(ws.GET("/hosts").Filter(hostsAuth).To(wsListHosts).
+		Doc("List hosts"))
 
 	(&wsHost{
 		prefix:  "",
 		getHost: detectHost,
-	}).register(ws)
+	}).register(ws, func(rb *restful.RouteBuilder) {
+		rb.Notes("In this case, the host is detected from the remote IP")
+	})
 
 	(&wsHost{
-		prefix: "/hosts/{hostname}",
+		prefix: "/hosts/{host-name}",
 		getHost: func(req *restful.Request) string {
-			return req.PathParameter("hostname")
+			return req.PathParameter("host-name")
 		},
-	}).register(ws)
+	}).register(ws, func(rb *restful.RouteBuilder) {
+		rb.Filter(adminAuth)
+	})
 
 	return ws
 }
@@ -65,78 +81,24 @@ func detectHost(req *restful.Request) string {
 	return host.Name
 }
 
-func wsUploadConfig(req *restful.Request, resp *restful.Response) {
-	r := req.Request
-	w := resp.ResponseWriter
-
-	if !authorizeAdmin(r) {
-		forbidden(w, r)
-		return
-	}
-
-	if r.Method != "POST" {
-		http.NotFound(w, r)
-		return
-	}
-
-	out, err := ioutil.TempFile(*dataDir, ".config-upload")
+func wsReadConfig(resp *restful.Response) *localconfig.Config {
+	cfg, err := readConfig()
 	if err != nil {
-		writeError(w, err)
-		return
+		log.Print("failed to read config: ", err)
+		resp.WriteErrorString(http.StatusServiceUnavailable, "failed to read config")
+		return nil
 	}
 
-	defer os.Remove(out.Name())
+	return cfg
+}
 
-	_, err = io.Copy(out, r.Body)
-	out.Close()
-	if err != nil {
-		writeError(w, err)
-		return
-	}
+func wsNotFound(req *restful.Request, resp *restful.Response) {
+	http.NotFound(resp.ResponseWriter, req.Request)
+}
 
-	archivesPath := filepath.Join(*dataDir, "archives")
-	cfgPath := configFilePath()
-
-	err = os.MkdirAll(archivesPath, 0700)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-
-	err = func() (err error) {
-		backupPath := filepath.Join(archivesPath, "config."+ulid()+".yaml.gz")
-
-		bck, err := os.Create(backupPath)
-		if err != nil {
-			return
-		}
-
-		defer bck.Close()
-
-		in, err := os.Open(cfgPath)
-		if err != nil {
-			return
-		}
-
-		gz, err := gzip.NewWriterLevel(bck, 2)
-		if err != nil {
-			return
-		}
-
-		_, err = io.Copy(gz, in)
-		gz.Close()
-		in.Close()
-		return
-	}()
-
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-
-	err = os.Rename(out.Name(), cfgPath)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
+func wsError(resp *restful.Response, err error) {
+	log.Print("request failed: ", err)
+	resp.WriteErrorString(
+		http.StatusInternalServerError,
+		http.StatusText(http.StatusInternalServerError))
 }

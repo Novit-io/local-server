@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	restful "github.com/emicklei/go-restful"
+	"github.com/mcluseau/go-swagger-ui"
 	"novit.nc/direktil/pkg/cas"
 
 	"novit.nc/direktil/local-server/pkg/apiutils"
@@ -39,16 +40,7 @@ func main() {
 		restful.Add(buildWS())
 	})
 
-	// by default, serve a host resource by its IP
-	//http.HandleFunc("/", serveHostByIP)
-
-	//http.HandleFunc("/configs", uploadConfig)
-
-	http.HandleFunc("/hosts", serveHosts)
-	//http.HandleFunc("/hosts/", serveHost)
-
-	http.HandleFunc("/clusters", serveClusters)
-	http.HandleFunc("/clusters/", serveCluster)
+	swaggerui.HandleAt("/swagger-ui/")
 
 	if *address != "" {
 		log.Print("HTTP listening on ", *address)
