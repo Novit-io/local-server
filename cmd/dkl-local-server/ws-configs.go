@@ -29,7 +29,7 @@ func writeNewConfig(reader io.Reader) (err error) {
 
 	defer os.Remove(out.Name())
 
-	_, err = io.Copy(out, req.Request.Body)
+	_, err = io.Copy(out, reader)
 	out.Close()
 	if err != nil {
 		return
