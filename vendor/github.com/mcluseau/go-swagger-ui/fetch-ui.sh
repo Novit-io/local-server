@@ -12,4 +12,11 @@ set -ex
 rm -fr swagger-ui/dist
 tar zxvf swagger-ui/$file --strip-components=1 -C swagger-ui swagger-ui-$v/dist
 
+# remove stack trace support (heavy)
+rm swagger-ui/dist/*.map
+
+# remove unused files
+rm swagger-ui/dist/swagger-ui.js
+
+# set a better default URL
 sed -i -e '/url:/s,https://petstore.swagger.io/v2/swagger.json,/swagger.json,g' swagger-ui/dist/*

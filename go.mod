@@ -14,7 +14,7 @@ require (
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/markbates/going v1.0.3 // indirect
-	github.com/mcluseau/go-swagger-ui v0.0.0-20190204030159-200d6ab398a9
+	github.com/mcluseau/go-swagger-ui v0.0.0-20190204031235-fc4ac9154422
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/oklog/ulid v1.3.1
