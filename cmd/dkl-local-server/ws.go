@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
+	"novit.nc/direktil/local-server/pkg/mime"
 	"novit.nc/direktil/pkg/localconfig"
 )
 
@@ -23,6 +24,7 @@ func buildWS() *restful.WebService {
 	ws.Route(ws.GET("/clusters/{cluster-name}").Filter(adminAuth).To(wsCluster).
 		Doc("Get cluster details"))
 	ws.Route(ws.GET("/clusters/{cluster-name}/addons").Filter(adminAuth).To(wsClusterAddons).
+		Produces(mime.YAML).
 		Doc("Get cluster addons").
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "The cluster does not exists or does not have addons defined", nil))

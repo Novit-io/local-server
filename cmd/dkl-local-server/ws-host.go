@@ -5,6 +5,8 @@ import (
 	"path"
 
 	restful "github.com/emicklei/go-restful"
+
+	"novit.nc/direktil/local-server/pkg/mime"
 )
 
 type wsHost struct {
@@ -19,23 +21,45 @@ func (ws *wsHost) register(rws *restful.WebService, alterRB func(*restful.RouteB
 
 	for _, rb := range []*restful.RouteBuilder{
 		// raw configuration
-		b("config").Doc("Get the host's configuration"),
+		b("config").
+			Produces(mime.YAML).
+			Doc("Get the host's configuration"),
 
 		// metal/local HDD install
-		b("boot.img").Doc("Get the host's boot disk image"),
-		b("boot.img.gz").Doc("Get the host's boot disk image (gzip compressed)"),
-		b("boot.img.lz4").Doc("Get the host's boot disk image (lz4 compressed)"),
+		b("boot.img").
+			Produces(mime.DISK).
+			Doc("Get the host's boot disk image"),
+
+		b("boot.img.gz").
+			Produces(mime.DISK + "+gzip").
+			Doc("Get the host's boot disk image (gzip compressed)"),
+
+		b("boot.img.lz4").
+			Produces(mime.DISK + "+lz4").
+			Doc("Get the host's boot disk image (lz4 compressed)"),
 
 		// metal/local HDD upgrades
-		b("boot.tar").Doc("Get the host's /boot archive (ie: for metal upgrades)"),
+		b("boot.tar").
+			Produces(mime.TAR).
+			Doc("Get the host's /boot archive (ie: for metal upgrades)"),
 
 		// read-only ISO support
-		b("boot.iso").Doc("Get the host's boot CD-ROM image"),
+		b("boot.iso").
+			Produces(mime.ISO).
+			Doc("Get the host's boot CD-ROM image"),
 
 		// netboot support
-		b("ipxe").Doc("Get the host's IPXE code (for netboot)"),
-		b("kernel").Doc("Get the host's kernel (ie: for netboot)"),
-		b("initrd").Doc("Get the host's initial RAM disk (ie: for netboot)"),
+		b("ipxe").
+			Produces(mime.IPXE).
+			Doc("Get the host's IPXE code (for netboot)"),
+
+		b("kernel").
+			Produces(mime.OCTET).
+			Doc("Get the host's kernel (ie: for netboot)"),
+
+		b("initrd").
+			Produces(mime.OCTET).
+			Doc("Get the host's initial RAM disk (ie: for netboot)"),
 	} {
 		alterRB(rb)
 		rws.Route(rb)
