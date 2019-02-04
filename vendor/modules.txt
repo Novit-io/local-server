@@ -63,7 +63,7 @@ github.com/json-iterator/go
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
 github.com/mailru/easyjson/buffer
-# github.com/mcluseau/go-swagger-ui v0.0.0-20190204025501-38c0b18f1edd
+# github.com/mcluseau/go-swagger-ui v0.0.0-20190204030159-200d6ab398a9
 github.com/mcluseau/go-swagger-ui
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent

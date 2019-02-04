@@ -407,6 +407,8 @@ github.com/mcluseau/go-swagger-ui v0.0.0-20190204024002-84343d2c0eda h1:ykEyzlC7
 github.com/mcluseau/go-swagger-ui v0.0.0-20190204024002-84343d2c0eda/go.mod h1:OllM1HVcFzek2effrrgC8BLKfG73mSKfrh41kEuhvMk=
 github.com/mcluseau/go-swagger-ui v0.0.0-20190204025501-38c0b18f1edd h1:knS7/g8ffqSDiRaPlgb/5AnPPO26Z8emO9CC9OOlntg=
 github.com/mcluseau/go-swagger-ui v0.0.0-20190204025501-38c0b18f1edd/go.mod h1:OllM1HVcFzek2effrrgC8BLKfG73mSKfrh41kEuhvMk=
+github.com/mcluseau/go-swagger-ui v0.0.0-20190204030159-200d6ab398a9 h1:pPFPrmHOzd64dzF8kONrA41LvwzOf94RSLUku3cWsto=
+github.com/mcluseau/go-swagger-ui v0.0.0-20190204030159-200d6ab398a9/go.mod h1:OllM1HVcFzek2effrrgC8BLKfG73mSKfrh41kEuhvMk=
 github.com/microcosm-cc/bluemonday v1.0.1/go.mod h1:hsXNsILzKxV+sX77C5b8FSuKF00vh2OMYv+xgHpAMF4=
 github.com/microcosm-cc/bluemonday v1.0.2/go.mod h1:iVP4YcDBq+n/5fb23BhYFvIMq/leAFZyRl6bYmGDlGc=
 github.com/mitchellh/go-homedir v1.0.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
