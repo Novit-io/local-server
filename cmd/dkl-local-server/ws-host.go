@@ -16,6 +16,7 @@ var trustXFF = flag.Bool("trust-xff", true, "Trust the X-Forwarded-For header")
 
 type wsHost struct {
 	prefix  string
+	hostDoc string
 	getHost func(req *restful.Request) string
 }
 
@@ -25,53 +26,56 @@ func (ws *wsHost) register(rws *restful.WebService, alterRB func(*restful.RouteB
 	}
 
 	for _, rb := range []*restful.RouteBuilder{
+		rws.GET(ws.prefix).To(ws.get).
+			Doc("Get the " + ws.hostDoc + "'s details"),
+
 		// raw configuration
 		b("config").
 			Produces(mime.YAML).
-			Doc("Get the host's configuration"),
+			Doc("Get the " + ws.hostDoc + "'s configuration"),
 
 		// metal/local HDD install
 		b("boot.img").
 			Produces(mime.DISK).
-			Doc("Get the host's boot disk image"),
+			Doc("Get the " + ws.hostDoc + "'s boot disk image"),
 
 		b("boot.img.gz").
 			Produces(mime.DISK + "+gzip").
-			Doc("Get the host's boot disk image (gzip compressed)"),
+			Doc("Get the " + ws.hostDoc + "'s boot disk image (gzip compressed)"),
 
 		b("boot.img.lz4").
 			Produces(mime.DISK + "+lz4").
-			Doc("Get the host's boot disk image (lz4 compressed)"),
+			Doc("Get the " + ws.hostDoc + "'s boot disk image (lz4 compressed)"),
 
 		// metal/local HDD upgrades
 		b("boot.tar").
 			Produces(mime.TAR).
-			Doc("Get the host's /boot archive (ie: for metal upgrades)"),
+			Doc("Get the " + ws.hostDoc + "'s /boot archive (ie: for metal upgrades)"),
 
 		// read-only ISO support
 		b("boot.iso").
 			Produces(mime.ISO).
-			Doc("Get the host's boot CD-ROM image"),
+			Doc("Get the " + ws.hostDoc + "'s boot CD-ROM image"),
 
 		// netboot support
 		b("ipxe").
 			Produces(mime.IPXE).
-			Doc("Get the host's IPXE code (for netboot)"),
+			Doc("Get the " + ws.hostDoc + "'s IPXE code (for netboot)"),
 
 		b("kernel").
 			Produces(mime.OCTET).
-			Doc("Get the host's kernel (ie: for netboot)"),
+			Doc("Get the " + ws.hostDoc + "'s kernel (ie: for netboot)"),
 
 		b("initrd").
 			Produces(mime.OCTET).
-			Doc("Get the host's initial RAM disk (ie: for netboot)"),
+			Doc("Get the " + ws.hostDoc + "'s initial RAM disk (ie: for netboot)"),
 	} {
 		alterRB(rb)
 		rws.Route(rb)
 	}
 }
 
-func (ws *wsHost) render(req *restful.Request, resp *restful.Response) {
+func (ws *wsHost) host(req *restful.Request, resp *restful.Response) (host *localconfig.Host, cfg *localconfig.Config) {
 	hostname := ws.getHost(req)
 	if hostname == "" {
 		wsNotFound(req, resp)
@@ -84,10 +88,27 @@ func (ws *wsHost) render(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	host := cfg.Host(hostname)
+	host = cfg.Host(hostname)
 	if host == nil {
 		log.Print("no host named ", hostname)
 		wsNotFound(req, resp)
+		return
+	}
+	return
+}
+
+func (ws *wsHost) get(req *restful.Request, resp *restful.Response) {
+	host, _ := ws.host(req, resp)
+	if host == nil {
+		return
+	}
+
+	resp.WriteEntity(host)
+}
+
+func (ws *wsHost) render(req *restful.Request, resp *restful.Response) {
+	host, cfg := ws.host(req, resp)
+	if host == nil {
 		return
 	}
 
@@ -105,15 +126,9 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *local
 	}
 
 	switch what {
-	case "ipxe":
-		w.Header().Set("Content-Type", "text/x-ipxe")
 	case "config":
-		w.Header().Set("Content-Type", "text/vnd.yaml")
-	default:
-		w.Header().Set("Content-Type", "application/octet-stream")
-	}
+		err = renderConfig(w, r, ctx)
 
-	switch what {
 	case "ipxe":
 		err = renderIPXE(w, ctx)
 
@@ -138,20 +153,12 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *local
 	case "boot.img.lz4":
 		err = renderCtx(w, r, ctx, what, buildBootImgLZ4)
 
-	case "config":
-		err = renderConfig(w, r, ctx)
-
 	default:
 		http.NotFound(w, r)
 	}
 
 	if err != nil {
-		if isNotFound(err) {
-			log.Printf("host %s: %s: %v", what, host.Name, err)
-			http.NotFound(w, r)
-		} else {
-			log.Printf("host %s: %s: failed to render: %v", what, host.Name, err)
-			http.Error(w, "", http.StatusServiceUnavailable)
-		}
+		log.Printf("host %s: %s: failed to render: %v", what, host.Name, err)
+		http.Error(w, "", http.StatusServiceUnavailable)
 	}
 }

@@ -21,8 +21,10 @@ func buildWS() *restful.WebService {
 	// clusters API
 	ws.Route(ws.GET("/clusters").Filter(adminAuth).To(wsListClusters).
 		Doc("List clusters"))
+
 	ws.Route(ws.GET("/clusters/{cluster-name}").Filter(adminAuth).To(wsCluster).
 		Doc("Get cluster details"))
+
 	ws.Route(ws.GET("/clusters/{cluster-name}/addons").Filter(adminAuth).To(wsClusterAddons).
 		Produces(mime.YAML).
 		Doc("Get cluster addons").
@@ -34,14 +36,16 @@ func buildWS() *restful.WebService {
 		Doc("List hosts"))
 
 	(&wsHost{
-		prefix:  "",
+		prefix:  "/me",
+		hostDoc: "detected host",
 		getHost: detectHost,
 	}).register(ws, func(rb *restful.RouteBuilder) {
 		rb.Notes("In this case, the host is detected from the remote IP")
 	})
 
 	(&wsHost{
-		prefix: "/hosts/{host-name}",
+		prefix:  "/hosts/{host-name}",
+		hostDoc: "given host",
 		getHost: func(req *restful.Request) string {
 			return req.PathParameter("host-name")
 		},

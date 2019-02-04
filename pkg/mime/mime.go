@@ -5,6 +5,6 @@ const (
 	TAR   = "application/tar"
 	DISK  = "application/x-diskimage"
 	ISO   = "application/x-iso9660-image"
-	IPXE  = "application/x-ipxe"
+	IPXE  = "text/x-ipxe"
 	OCTET = "application/octet-stream"
 )
