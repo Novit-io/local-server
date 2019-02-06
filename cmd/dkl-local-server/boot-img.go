@@ -22,18 +22,6 @@ func buildBootImg(out io.Writer, ctx *renderContext) (err error) {
 	}
 	defer rmTempFile(bootImg)
 
-	// 2MB + 2GB + 2MB + 34 sectors
-	bootImg.Truncate(2<<30 + 4<<20 + 34*512)
-
-	// partition
-	err = run("sgdisk",
-		"--new=0:4096:+2G", "--typecode=0:EF00", "-c", "0:boot",
-		"--new=0:0:+2M", "--typecode=0:EF02", "-c", "0:BIOS-BOOT",
-		"--hybrid=1:2", "--print", bootImg.Name())
-	if err != nil {
-		return
-	}
-
 	err = setupBootImage(bootImg, ctx)
 	if err != nil {
 		return
@@ -68,20 +56,42 @@ func buildBootImgGZ(out io.Writer, ctx *renderContext) (err error) {
 }
 
 func setupBootImage(bootImg *os.File, ctx *renderContext) (err error) {
+	path, err := ctx.distFetch("grub-support", "1.0.0")
+	if err != nil {
+		return
+	}
+
+	baseImage, err := os.Open(path)
+	if err != nil {
+		return
+	}
+
+	defer baseImage.Close()
+
+	baseImageGz, err := gzip.NewReader(baseImage)
+	if err != nil {
+		return
+	}
+
+	defer baseImageGz.Close()
+	_, err = io.Copy(bootImg, baseImageGz)
+
+	if err != nil {
+		return
+	}
+
 	devb, err := exec.Command("losetup", "--find", "--show", "--partscan", bootImg.Name()).CombinedOutput()
 	if err != nil {
 		return
 	}
 
 	dev := strings.TrimSpace(string(devb))
-	defer run("losetup", "-d", dev)
+	defer func() {
+		log.Print("detaching ", dev)
+		run("losetup", "-d", dev)
+	}()
 
 	log.Print("device: ", dev)
-
-	err = run("mkfs.vfat", "-n", "DKLBOOT", dev+"p1")
-	if err != nil {
-		return
-	}
 
 	tempDir := bootImg.Name() + ".p1.mount"
 
@@ -91,7 +101,7 @@ func setupBootImage(bootImg *os.File, ctx *renderContext) (err error) {
 	}
 
 	defer func() {
-		log.Print("Removing ", tempDir)
+		log.Print("removing ", tempDir)
 		os.RemoveAll(tempDir)
 	}()
 
@@ -101,15 +111,9 @@ func setupBootImage(bootImg *os.File, ctx *renderContext) (err error) {
 	}
 
 	defer func() {
-		log.Print("Unmounting ", tempDir)
+		log.Print("unmounting ", tempDir)
 		syscall.Unmount(tempDir, 0)
 	}()
-
-	// setup grub
-	err = run("/scripts/grub_install.sh", bootImg.Name(), dev, tempDir)
-	if err != nil {
-		return
-	}
 
 	// add system elements
 	tarOut, tarIn := io.Pipe()

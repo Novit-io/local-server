@@ -34,6 +34,9 @@ func (ws *wsHost) register(rws *restful.WebService, alterRB func(*restful.RouteB
 			Produces(mime.YAML).
 			Doc("Get the " + ws.hostDoc + "'s configuration"),
 
+		b("config.json").
+			Doc("Get the " + ws.hostDoc + "'s configuration (as JSON)"),
+
 		// metal/local HDD install
 		b("boot.img").
 			Produces(mime.DISK).
@@ -127,7 +130,10 @@ func renderHost(w http.ResponseWriter, r *http.Request, what string, host *local
 
 	switch what {
 	case "config":
-		err = renderConfig(w, r, ctx)
+		err = renderConfig(w, r, ctx, false)
+
+	case "config.json":
+		err = renderConfig(w, r, ctx, true)
 
 	case "ipxe":
 		err = renderIPXE(w, ctx)

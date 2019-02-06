@@ -27,7 +27,6 @@ func loadSrc() {
 	if err != nil {
 		log.Fatal("failed to load config from dir: ", err)
 	}
-
 }
 
 func main() {
@@ -69,6 +68,11 @@ func main() {
 			ips = append(ips, host.IP)
 		}
 		ips = append(ips, host.IPs...)
+
+		if ctx.Group.Versions["modules"] == "" {
+			// default modules' version to kernel's version
+			ctx.Group.Versions["modules"] = ctx.Group.Kernel
+		}
 
 		dst.Hosts = append(dst.Hosts, &localconfig.Host{
 			Name: host.Name,

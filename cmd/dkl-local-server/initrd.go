@@ -1,19 +1,18 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	cpio "github.com/cavaliercoder/go-cpio"
 	yaml "gopkg.in/yaml.v2"
 )
 
-func renderConfig(w http.ResponseWriter, r *http.Request, ctx *renderContext) error {
+func renderConfig(w http.ResponseWriter, r *http.Request, ctx *renderContext, asJson bool) (err error) {
 	log.Printf("sending config for %q", ctx.Host.Name)
 
 	_, cfg, err := ctx.Config()
@@ -21,13 +20,11 @@ func renderConfig(w http.ResponseWriter, r *http.Request, ctx *renderContext) er
 		return err
 	}
 
-	ba, err := yaml.Marshal(cfg)
-	if err != nil {
-		return err
+	if asJson {
+		err = json.NewEncoder(w).Encode(cfg)
+	} else {
+		err = yaml.NewEncoder(w).Encode(cfg)
 	}
-
-	w.Header().Set("Content-Type", "application/yaml")
-	http.ServeContent(w, r, "config.yaml", time.Unix(0, 0), bytes.NewReader(ba))
 
 	return nil
 }
