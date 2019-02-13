@@ -17,10 +17,4 @@ run apt-get update \
  && apt-get install -y genisoimage gdisk dosfstools util-linux udev \
  && apt-get clean
 
-run yes |apt-get install -y grub2 grub-pc-bin grub-efi-amd64-bin \
- && apt-get clean
-
-add scripts   /scripts
-add assets    /assets
-add efi-shim/ /shim
 copy --from=build /go/bin/ /bin/
