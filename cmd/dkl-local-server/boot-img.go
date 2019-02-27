@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -107,7 +108,7 @@ func setupBootImage(bootImg *os.File, ctx *renderContext) (err error) {
 
 	err = syscall.Mount(dev+"p1", tempDir, "vfat", 0, "")
 	if err != nil {
-		return
+		return fmt.Errorf("failed to mount %s to %s: %v", dev+"p1", tempDir, err)
 	}
 
 	defer func() {
