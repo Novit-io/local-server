@@ -14,7 +14,9 @@ import (
 )
 
 var (
-	dir = flag.String("in", ".", "Source directory")
+	dir          = flag.String("in", ".", "Source directory")
+	outPath      = flag.String("out", "config.yaml", "Output file")
+	defaultsPath = flag.String("defaults", "defaults", "Path to the defaults")
 
 	src *clustersconfig.Config
 	dst *localconfig.Config
@@ -22,15 +24,13 @@ var (
 
 func loadSrc() {
 	var err error
-
-	src, err = clustersconfig.FromDir(*dir)
+	src, err = clustersconfig.FromDir(*dir, *defaultsPath)
 	if err != nil {
 		log.Fatal("failed to load config from dir: ", err)
 	}
 }
 
 func main() {
-	outPath := flag.String("out", "config.yaml", "Output file")
 	flag.Parse()
 
 	loadSrc()

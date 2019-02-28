@@ -164,6 +164,7 @@ func (t *Template) Execute(wr io.Writer, data interface{}, extraFuncs map[string
 
 // Host represents a host served by this server.
 type Host struct {
+	WithRev
 	Name    string
 	MAC     string
 	IP      string
@@ -175,6 +176,7 @@ type Host struct {
 
 // Group represents a group of hosts and provides their configuration.
 type Group struct {
+	WithRev
 	Name       string
 	Master     bool
 	IPXE       string
@@ -191,6 +193,7 @@ type Vars map[string]interface{}
 
 // Cluster represents a cluster of hosts, allowing for cluster-wide variables.
 type Cluster struct {
+	WithRev
 	Name    string
 	Domain  string
 	Addons  string

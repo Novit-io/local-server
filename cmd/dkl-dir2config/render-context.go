@@ -81,7 +81,12 @@ func (ctx *renderContext) Config() string {
 
 	extraFuncs := ctx.templateFuncs(ctxMap)
 
-	extraFuncs["static_pods"] = func(name string) (string, error) {
+	extraFuncs["static_pods"] = func() (string, error) {
+		name := ctx.Group.StaticPods
+		if len(name) == 0 {
+			return "", fmt.Errorf("group %q has no static pods defined", ctx.Group.Name)
+		}
+
 		t := ctx.clusterConfig.StaticPodsTemplate(name)
 		if t == nil {
 			return "", fmt.Errorf("no static pods template named %q", name)

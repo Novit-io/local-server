@@ -11,7 +11,7 @@ require (
 	github.com/go-openapi/spec v0.18.0 // indirect
 	github.com/go-openapi/swag v0.18.0 // indirect
 	github.com/gobuffalo/buffalo-plugins v1.12.1 // indirect
-	github.com/google/certificate-transparency-go v1.0.21
+	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/markbates/going v1.0.3 // indirect
 	github.com/mcluseau/go-swagger-ui v0.0.0-20190204031235-fc4ac9154422
@@ -20,11 +20,14 @@ require (
 	github.com/oklog/ulid v1.3.1
 	github.com/pierrec/lz4 v2.0.5+incompatible
 	github.com/spf13/afero v1.2.1 // indirect
+	github.com/src-d/go-git v4.7.0+incompatible // indirect
 	github.com/ugorji/go/codec v0.0.0-20190128213124-ee1426cffec0 // indirect
-	golang.org/x/crypto v0.0.0-20190131182504-b8fe1690c613
-	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
+	golang.org/x/crypto v0.0.0-20190131182504-b8fe1690c613 // indirect
+	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3 // indirect
 	golang.org/x/sys v0.0.0-20190203050204-7ae0202eb74c // indirect
 	golang.org/x/tools v0.0.0-20190202235157-7414d4c1f71c // indirect
+	gopkg.in/src-d/go-billy.v4 v4.3.0
+	gopkg.in/src-d/go-git.v4 v4.10.0
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/apimachinery v0.0.0-20190201131811-df262fa1a1ba
 	novit.nc/direktil/pkg v0.0.0-20181210211743-9dc80cd34b09
