@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path"
+	"path/filepath"
 	"strings"
 
 	billy "gopkg.in/src-d/go-billy.v4"
@@ -75,7 +76,9 @@ func (d *Defaults) Open(rev, filePath string) (rd io.Reader, err error) {
 	}
 
 	file, err := tree.File(filePath)
-	if err != nil {
+	if err == object.ErrFileNotFound {
+		return nil, nil
+	} else if err != nil {
 		return
 	}
 
@@ -84,6 +87,9 @@ func (d *Defaults) Open(rev, filePath string) (rd io.Reader, err error) {
 
 func (d *Defaults) ReadAll(rev, filePath string) (ba []byte, err error) {
 	rd, err := d.Open(rev, filePath)
+	if err != nil || rd == nil {
+		return
+	}
 	return ioutil.ReadAll(rd)
 }
 
@@ -97,7 +103,7 @@ func (d *Defaults) List(rev, dir string) (names []string, err error) {
 		if !strings.HasSuffix(f.Name, ".yaml") {
 			return
 		}
-		names = append(names, strings.TrimSuffix(f.Name, ".yaml"))
+		names = append(names, strings.TrimSuffix(filepath.Base(f.Name), ".yaml"))
 		return
 	})
 	return

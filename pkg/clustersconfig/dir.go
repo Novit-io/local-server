@@ -22,17 +22,19 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 
 	defaults, err := NewDefaults(defaultsPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load defaults: %v", err)
 	}
 
 	store := &dirStore{dirPath}
 	load := func(dir, name string, out Rev) error {
 		ba, err := store.Get(path.Join(dir, name))
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load %s/%s from dir: %v", dir, name, err)
 		}
-
-		return defaults.Load(dir, ".yaml", out, ba)
+		if err = defaults.Load(dir, ".yaml", out, ba); err != nil {
+			return fmt.Errorf("failed to enrich %s/%s from defaults: %v", dir, name, err)
+		}
+		return nil
 	}
 
 	config := &Config{Addons: make(map[string][]*Template)}
@@ -40,7 +42,7 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 	// load clusters
 	names, err := store.List("clusters")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list clusters: %v", err)
 	}
 
 	for _, name := range names {
@@ -55,29 +57,32 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 	// load groups
 	names, err = store.List("groups")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list groups: %v", err)
 	}
 
 	read := func(rev, filePath string) (data []byte, fromDefaults bool, err error) {
 		data, err = store.Get(filePath)
 		if err != nil {
+			err = fmt.Errorf("faild to read %s: %v", filePath, err)
 			return
 		}
 
-		if data == nil {
-			if len(rev) == 0 {
-				err = fmt.Errorf("entry not found: %s", filePath)
-				return
-			}
-
-			data, err = defaults.ReadAll(rev, filePath+".yaml")
-			if err != nil {
-				return
-			}
-
-			fromDefaults = true
+		if data != nil {
+			return // ok
 		}
 
+		if len(rev) == 0 {
+			err = fmt.Errorf("entry not found: %s", filePath)
+			return
+		}
+
+		data, err = defaults.ReadAll(rev, filePath+".yaml")
+		if err != nil {
+			err = fmt.Errorf("failed to read %s:%s: %v", rev, filePath, err)
+			return
+		}
+
+		fromDefaults = true
 		return
 	}
 
@@ -136,7 +141,7 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 	// load hosts
 	names, err = store.List("hosts")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list hosts: %v", err)
 	}
 
 	for _, name := range names {
@@ -152,14 +157,14 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 	loadTemplates := func(rev, dir string, templates *[]*Template) error {
 		names, err := store.List(dir)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to list %s: %v", dir, err)
 		}
 
 		if len(rev) != 0 {
 			var defaultsNames []string
 			defaultsNames, err = defaults.List(rev, dir)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to list %s:%s: %v", rev, dir, err)
 			}
 
 			names = append(names, defaultsNames...)

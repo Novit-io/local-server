@@ -33,6 +33,8 @@ func loadSrc() {
 func main() {
 	flag.Parse()
 
+	log.SetFlags(log.Ltime | log.Lmicroseconds | log.Lshortfile)
+
 	loadSrc()
 
 	dst = &localconfig.Config{
