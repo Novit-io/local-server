@@ -1,7 +1,9 @@
 # ------------------------------------------------------------------------
-from golang:1.11.5 as build
+from golang:1.12.0 as build
 
-env pkg novit.nc/direktil/local-server
+env CGO_ENABLED 0
+env pkg         novit.nc/direktil/local-server
+
 copy vendor /go/src/${pkg}/vendor
 copy pkg    /go/src/${pkg}/pkg
 copy cmd    /go/src/${pkg}/cmd
