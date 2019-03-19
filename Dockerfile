@@ -1,15 +1,17 @@
 # ------------------------------------------------------------------------
-from golang:1.12.0 as build
+from golang:1.12.1-alpine as build
+run apk add --update git
 
 env CGO_ENABLED 0
-env pkg         novit.nc/direktil/local-server
+arg GOPROXY
 
-copy vendor /go/src/${pkg}/vendor
-copy pkg    /go/src/${pkg}/pkg
-copy cmd    /go/src/${pkg}/cmd
-workdir /go/src/${pkg}
-run go test ./... \
- && go install ./cmd/...
+workdir /src
+add go.sum go.mod ./
+run go mod download
+
+add . ./
+run go test ./...
+run go install ./cmd/...
 
 # ------------------------------------------------------------------------
 from debian:stretch
