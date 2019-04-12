@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -36,6 +37,12 @@ func (ctx *renderContext) distFetch(path ...string) (outPath string, err error) 
 
 	resp, err := http.Get(fullURL)
 	if err != nil {
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		err = fmt.Errorf("wrong status: %s", resp.Status)
+		resp.Body.Close()
 		return
 	}
 
