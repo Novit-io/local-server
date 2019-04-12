@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -40,29 +42,33 @@ func (ctx *renderContext) distFetch(path ...string) (outPath string, err error) 
 		return
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		err = fmt.Errorf("wrong status: %s", resp.Status)
-		resp.Body.Close()
 		return
 	}
 
-	tempOutPath := filepath.Join(filepath.Dir(outPath), "._part_"+filepath.Base(outPath))
+	fOut, err := os.Create(filepath.Join(filepath.Dir(outPath), "._part_"+filepath.Base(outPath)))
+	if err != nil {
+		return
+	}
+
+	hash := sha1.New()
+
+	out := io.MultiWriter(fOut, hash)
 
 	done := make(chan error, 1)
 	go func() {
-		defer resp.Body.Close()
-		defer close(done)
+		_, err = io.Copy(out, resp.Body)
+		fOut.Close()
 
-		out, err := os.Create(tempOutPath)
 		if err != nil {
-			done <- err
-			return
+			os.Remove(fOut.Name())
 		}
 
-		defer out.Close()
-
-		_, err = io.Copy(out, resp.Body)
 		done <- err
+		close(done)
 	}()
 
 wait:
@@ -74,16 +80,24 @@ wait:
 	case err = <-done:
 		if err != nil {
 			log.Print("fetch of ", subPath, " failed: ", err)
-			os.Remove(tempOutPath)
 			return
 		}
-
-		log.Print("fetch of ", subPath, " finished")
 	}
 
-	// TODO checksum
+	hexSum := hex.EncodeToString(hash.Sum(nil))
+	log.Printf("fetch of %s finished (SHA1 checksum: %s)", subPath, hexSum)
 
-	err = os.Rename(tempOutPath, outPath)
+	if remoteSum := resp.Header.Get("X-Content-SHA1"); remoteSum != "" {
+		log.Printf("fetch of %s: remote SHA1 checksum: %s", subPath, remoteSum)
+		if remoteSum != hexSum {
+			err = fmt.Errorf("wrong SHA1 checksum: server=%s local=%s", remoteSum, hexSum)
+			log.Print("fetch of ", subPath, ": ", err)
+			os.Remove(fOut.Name())
+			return
+		}
+	}
+
+	err = os.Rename(fOut.Name(), outPath)
 
 	return
 }

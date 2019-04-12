@@ -11,20 +11,10 @@ run go mod download
 
 add . ./
 run go test ./...
-run go install ./cmd/...
+run go install ./cmd/dkl-store
 
 # ------------------------------------------------------------------------
-from debian:stretch
-entrypoint ["/bin/dkl-local-server"]
-
-run apt-get update \
- && apt-get install -y genisoimage gdisk dosfstools util-linux udev \
- && apt-get clean
-
-run yes |apt-get install -y grub2 grub-pc-bin grub-efi-amd64-bin \
- && apt-get clean
-
-run apt-get install -y ca-certificates \
- && apt-get clean
-
+from alpine:3.9
+volume /srv/dkl-store
+entrypoint ["/bin/dkl-store"]
 copy --from=build /go/bin/ /bin/
