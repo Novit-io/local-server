@@ -81,6 +81,8 @@ wait:
 		log.Print("fetch of ", subPath, " finished")
 	}
 
+	// TODO checksum
+
 	err = os.Rename(tempOutPath, outPath)
 
 	return
