@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -135,6 +136,14 @@ func (ctx *renderContext) templateFuncs() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
+		"password": func(cluster, name string) (password string, err error) {
+			password = secretData.Password(cluster, name)
+			if len(password) == 0 {
+				err = fmt.Errorf("password %q not defined for cluster %q", name, cluster)
+			}
+			return
+		},
+
 		"token": func(cluster, name string) (s string, err error) {
 			return secretData.Token(cluster, name)
 		},

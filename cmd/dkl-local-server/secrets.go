@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 
 	"github.com/cloudflare/cfssl/config"
@@ -36,8 +37,9 @@ type SecretData struct {
 }
 
 type ClusterSecrets struct {
-	CAs    map[string]*CA
-	Tokens map[string]string
+	CAs       map[string]*CA
+	Tokens    map[string]string
+	Passwords map[string]string
 }
 
 type CA struct {
@@ -101,6 +103,14 @@ func (sd *SecretData) Save() error {
 	return ioutil.WriteFile(secretDataPath(), ba, 0600)
 }
 
+func newClusterSecrets() *ClusterSecrets {
+	return &ClusterSecrets{
+		CAs:       make(map[string]*CA),
+		Tokens:    make(map[string]string),
+		Passwords: make(map[string]string),
+	}
+}
+
 func (sd *SecretData) cluster(name string) (cs *ClusterSecrets) {
 	cs, ok := sd.clusters[name]
 	if ok {
@@ -112,13 +122,45 @@ func (sd *SecretData) cluster(name string) (cs *ClusterSecrets) {
 
 	log.Info("secret-data: new cluster: ", name)
 
-	cs = &ClusterSecrets{
-		CAs:    make(map[string]*CA),
-		Tokens: make(map[string]string),
-	}
+	cs = newClusterSecrets()
 	sd.clusters[name] = cs
 	sd.changed = true
 	return
+}
+
+func (sd *SecretData) Passwords(cluster string) (passwords []string) {
+	cs := sd.cluster(cluster)
+
+	passwords = make([]string, 0, len(cs.Passwords))
+	for name := range cs.Passwords {
+		passwords = append(passwords, name)
+	}
+
+	sort.Strings(passwords)
+
+	return
+}
+
+func (sd *SecretData) Password(cluster, name string) (password string) {
+	cs := sd.cluster(cluster)
+
+	if cs.Passwords == nil {
+		cs.Passwords = make(map[string]string)
+	}
+
+	password = cs.Passwords[name]
+	return
+}
+
+func (sd *SecretData) SetPassword(cluster, name, password string) {
+	cs := sd.cluster(cluster)
+
+	if cs.Passwords == nil {
+		cs.Passwords = make(map[string]string)
+	}
+
+	cs.Passwords[name] = password
+	sd.changed = true
 }
 
 func (sd *SecretData) Token(cluster, name string) (token string, err error) {

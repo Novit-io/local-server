@@ -61,3 +61,42 @@ func wsClusterAddons(req *restful.Request, resp *restful.Response) {
 
 	resp.Write([]byte(cluster.Addons))
 }
+
+func wsClusterPasswords(req *restful.Request, resp *restful.Response) {
+	cluster := wsReadCluster(req, resp)
+	if cluster == nil {
+		return
+	}
+
+	resp.WriteEntity(secretData.Passwords(cluster.Name))
+}
+func wsClusterPassword(req *restful.Request, resp *restful.Response) {
+	cluster := wsReadCluster(req, resp)
+	if cluster == nil {
+		return
+	}
+
+	name := req.PathParameter("password-name")
+
+	resp.WriteEntity(secretData.Password(cluster.Name, name))
+}
+func wsClusterSetPassword(req *restful.Request, resp *restful.Response) {
+	cluster := wsReadCluster(req, resp)
+	if cluster == nil {
+		return
+	}
+
+	name := req.PathParameter("password-name")
+
+	var password string
+	if err := req.ReadEntity(&password); err != nil {
+		wsError(resp, err) // FIXME this is a BadRequest
+		return
+	}
+
+	secretData.SetPassword(cluster.Name, name, password)
+
+	if err := secretData.Save(); err != nil {
+		wsError(resp, err)
+	}
+}

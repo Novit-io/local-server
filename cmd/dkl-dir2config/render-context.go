@@ -160,6 +160,10 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 	}
 
 	return map[string]interface{}{
+		"password": func(name string) (s string) {
+			return fmt.Sprintf("{{ password %q %q }}", cluster, name)
+		},
+
 		"token": func(name string) (s string) {
 			return fmt.Sprintf("{{ token %q %q }}", cluster, name)
 		},

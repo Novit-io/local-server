@@ -31,6 +31,13 @@ func buildWS() *restful.WebService {
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "The cluster does not exists or does not have addons defined", nil))
 
+	ws.Route(ws.GET("/clusters/{cluster-name}/passwords").Filter(adminAuth).To(wsClusterPasswords).
+		Doc("List cluster's passwords"))
+	ws.Route(ws.GET("/clusters/{cluster-name}/passwords/{password-name}").Filter(adminAuth).To(wsClusterPassword).
+		Doc("Get cluster's password"))
+	ws.Route(ws.PUT("/clusters/{cluster-name}/passwords/{password-name}").Filter(adminAuth).To(wsClusterSetPassword).
+		Doc("Set cluster's password"))
+
 	// hosts API
 	ws.Route(ws.GET("/hosts").Filter(hostsAuth).To(wsListHosts).
 		Doc("List hosts"))
