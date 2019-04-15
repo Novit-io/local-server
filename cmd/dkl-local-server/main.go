@@ -37,7 +37,7 @@ func main() {
 	go casCleaner()
 
 	apiutils.Setup(func() {
-		restful.Add(buildWS())
+		registerWS(restful.DefaultContainer)
 	})
 
 	swaggerui.HandleAt("/swagger-ui/")

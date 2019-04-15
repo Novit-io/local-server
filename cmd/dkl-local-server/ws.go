@@ -11,35 +11,53 @@ import (
 	"novit.nc/direktil/pkg/localconfig"
 )
 
-func buildWS() *restful.WebService {
-	ws := &restful.WebService{}
+func registerWS(rest *restful.Container) {
+	// Admin API
+	adminWS := &restful.WebService{}
+	ws := adminWS
+	ws.Filter(adminAuth).
+		HeaderParameter("Authorization", "Admin bearer token")
 
-	// configs API
-	ws.Route(ws.POST("/configs").Filter(adminAuth).To(wsUploadConfig).
+	// - configs API
+	ws.Route(ws.POST("/configs").To(wsUploadConfig).
 		Doc("Upload a new current configuration, archiving the previous one"))
 
-	// clusters API
-	ws.Route(ws.GET("/clusters").Filter(adminAuth).To(wsListClusters).
+	// - clusters API
+	ws.Route(ws.GET("/clusters").To(wsListClusters).
 		Doc("List clusters"))
 
-	ws.Route(ws.GET("/clusters/{cluster-name}").Filter(adminAuth).To(wsCluster).
+	ws.Route(ws.GET("/clusters/{cluster-name}").To(wsCluster).
 		Doc("Get cluster details"))
 
-	ws.Route(ws.GET("/clusters/{cluster-name}/addons").Filter(adminAuth).To(wsClusterAddons).
+	ws.Route(ws.GET("/clusters/{cluster-name}/addons").To(wsClusterAddons).
 		Produces(mime.YAML).
 		Doc("Get cluster addons").
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "The cluster does not exists or does not have addons defined", nil))
 
-	ws.Route(ws.GET("/clusters/{cluster-name}/passwords").Filter(adminAuth).To(wsClusterPasswords).
+	ws.Route(ws.GET("/clusters/{cluster-name}/passwords").To(wsClusterPasswords).
 		Doc("List cluster's passwords"))
-	ws.Route(ws.GET("/clusters/{cluster-name}/passwords/{password-name}").Filter(adminAuth).To(wsClusterPassword).
+	ws.Route(ws.GET("/clusters/{cluster-name}/passwords/{password-name}").To(wsClusterPassword).
 		Doc("Get cluster's password"))
-	ws.Route(ws.PUT("/clusters/{cluster-name}/passwords/{password-name}").Filter(adminAuth).To(wsClusterSetPassword).
+	ws.Route(ws.PUT("/clusters/{cluster-name}/passwords/{password-name}").To(wsClusterSetPassword).
 		Doc("Set cluster's password"))
 
-	// hosts API
-	ws.Route(ws.GET("/hosts").Filter(hostsAuth).To(wsListHosts).
+	(&wsHost{
+		prefix:  "/hosts/{host-name}",
+		hostDoc: "given host",
+		getHost: func(req *restful.Request) string {
+			return req.PathParameter("host-name")
+		},
+	}).register(adminWS, func(rb *restful.RouteBuilder) {
+	})
+
+	// Hosts API
+	hostsWS := &restful.WebService{}
+	ws = adminWS
+	ws.Filter(hostsAuth).
+		HeaderParameter("Authorization", "Host or admin bearer token")
+
+	ws.Route(ws.GET("/hosts").To(wsListHosts).
 		Doc("List hosts"))
 
 	(&wsHost{
@@ -50,17 +68,9 @@ func buildWS() *restful.WebService {
 		rb.Notes("In this case, the host is detected from the remote IP")
 	})
 
-	(&wsHost{
-		prefix:  "/hosts/{host-name}",
-		hostDoc: "given host",
-		getHost: func(req *restful.Request) string {
-			return req.PathParameter("host-name")
-		},
-	}).register(ws, func(rb *restful.RouteBuilder) {
-		rb.Filter(adminAuth)
-	})
-
-	return ws
+	// register the web services
+	rest.Add(adminWS)
+	rest.Add(hostsWS)
 }
 
 func detectHost(req *restful.Request) string {
