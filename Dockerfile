@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------
-from golang:1.12.3-alpine as build
+from golang:1.12.4-alpine as build
 run apk add --update git
 
 env CGO_ENABLED 0

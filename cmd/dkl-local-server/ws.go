@@ -13,8 +13,7 @@ import (
 
 func registerWS(rest *restful.Container) {
 	// Admin API
-	adminWS := &restful.WebService{}
-	ws := adminWS
+	ws := &restful.WebService{}
 	ws.Filter(adminAuth).
 		HeaderParameter("Authorization", "Admin bearer token")
 
@@ -42,35 +41,34 @@ func registerWS(rest *restful.Container) {
 	ws.Route(ws.PUT("/clusters/{cluster-name}/passwords/{password-name}").To(wsClusterSetPassword).
 		Doc("Set cluster's password"))
 
+	ws.Route(ws.GET("/hosts").To(wsListHosts).
+		Doc("List hosts"))
+
 	(&wsHost{
 		prefix:  "/hosts/{host-name}",
 		hostDoc: "given host",
 		getHost: func(req *restful.Request) string {
 			return req.PathParameter("host-name")
 		},
-	}).register(adminWS, func(rb *restful.RouteBuilder) {
+	}).register(ws, func(rb *restful.RouteBuilder) {
 	})
 
+	rest.Add(ws)
+
 	// Hosts API
-	hostsWS := &restful.WebService{}
-	ws = adminWS
+	ws = &restful.WebService{}
+	ws.Path("/me")
 	ws.Filter(hostsAuth).
 		HeaderParameter("Authorization", "Host or admin bearer token")
 
-	ws.Route(ws.GET("/hosts").To(wsListHosts).
-		Doc("List hosts"))
-
 	(&wsHost{
-		prefix:  "/me",
 		hostDoc: "detected host",
 		getHost: detectHost,
 	}).register(ws, func(rb *restful.RouteBuilder) {
 		rb.Notes("In this case, the host is detected from the remote IP")
 	})
 
-	// register the web services
-	rest.Add(adminWS)
-	rest.Add(hostsWS)
+	rest.Add(ws)
 }
 
 func detectHost(req *restful.Request) string {
