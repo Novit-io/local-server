@@ -12,7 +12,7 @@ import (
 )
 
 func registerWS(rest *restful.Container) {
-	// Admin API
+	// Admin-level APIs
 	ws := &restful.WebService{}
 	ws.Filter(adminAuth).
 		HeaderParameter("Authorization", "Admin bearer token")

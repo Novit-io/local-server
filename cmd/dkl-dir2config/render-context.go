@@ -41,10 +41,10 @@ func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ct
 		group.Vars,
 		host.Vars,
 	} {
-		for k, v := range oVars {
-			vars[k] = v
-		}
+		mapMerge(vars, oVars)
 	}
+
+	log.Print("vars: ", vars)
 
 	return &renderContext{
 		Host:               host,
@@ -56,6 +56,19 @@ func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ct
 
 		clusterConfig: cfg,
 	}, nil
+}
+
+func mapMerge(target, source map[string]interface{}) {
+	for k, v := range source {
+		if tMap, targetIsMap := target[k].(map[string]interface{}); targetIsMap {
+			if sMap, sourceIsMap := v.(map[string]interface{}); sourceIsMap {
+				mapMerge(tMap, sMap)
+				continue
+			}
+		}
+
+		target[k] = v
+	}
 }
 
 func (ctx *renderContext) Config() string {
