@@ -198,30 +198,8 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 		return
 	}
 
-	return map[string]interface{}{
-		"password": func(name string) (s string) {
-			return fmt.Sprintf("{{ password %q %q }}", cluster, name)
-		},
-
-		"token": func(name string) (s string) {
-			return fmt.Sprintf("{{ token %q %q }}", cluster, name)
-		},
-
-		"ca_key": func(name string) (s string, err error) {
-			// TODO check CA exists
-			// ?ctx.clusterConfig.CA(name)
-			return fmt.Sprintf("{{ ca_key %q %q }}", cluster, name), nil
-		},
-
-		"ca_crt": func(name string) (s string, err error) {
-			// TODO check CA exists
-			return fmt.Sprintf("{{ ca_crt %q %q }}", cluster, name), nil
-		},
-
-		"ca_dir": func(name string) (s string, err error) {
-			return fmt.Sprintf("{{ ca_dir %q %q }}", cluster, name), nil
-		},
-
+	funcs := clusterFuncs(ctx.Cluster)
+	for k, v := range map[string]interface{}{
 		"tls_key": func(name string) (string, error) {
 			return getKeyCert(name, "tls_key")
 		},
@@ -256,7 +234,10 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 			}
 			return
 		},
+	} {
+		funcs[k] = v
 	}
+	return funcs
 }
 
 func (ctx *renderContext) asMap() map[string]interface{} {

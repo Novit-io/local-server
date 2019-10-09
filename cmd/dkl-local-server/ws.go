@@ -34,6 +34,12 @@ func registerWS(rest *restful.Container) {
 		Returns(http.StatusOK, "OK", nil).
 		Returns(http.StatusNotFound, "The cluster does not exists or does not have addons defined", nil))
 
+	ws.Route(ws.GET("/clusters/{cluster-name}/bootstrap-pods").To(wsClusterBootstrapPods).
+		Produces(mime.YAML).
+		Doc("Get cluster bootstrap pods YAML definitions").
+		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusNotFound, "The cluster does not exists or does not have bootstrap pods defined", nil))
+
 	ws.Route(ws.GET("/clusters/{cluster-name}/passwords").To(wsClusterPasswords).
 		Doc("List cluster's passwords"))
 	ws.Route(ws.GET("/clusters/{cluster-name}/passwords/{password-name}").To(wsClusterPassword).
