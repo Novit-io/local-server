@@ -99,7 +99,11 @@ func (d *Defaults) List(rev, dir string) (names []string, err error) {
 		return
 	}
 
+	dirPrefix := dir + "/"
 	err = tree.Files().ForEach(func(f *object.File) (err error) {
+		if !strings.HasPrefix(f.Name, dirPrefix) {
+			return
+		}
 		if !strings.HasSuffix(f.Name, ".yaml") {
 			return
 		}

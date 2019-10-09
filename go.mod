@@ -25,7 +25,9 @@ require (
 	golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.0
 	gopkg.in/src-d/go-git.v4 v4.10.0
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/apimachinery v0.0.0-20190201131811-df262fa1a1ba
-	novit.nc/direktil/pkg v0.0.0-20181210211743-9dc80cd34b09
+	novit.nc/direktil/pkg v0.0.0-20191009054056-6e432c2a06e6
 )
+
+go 1.13

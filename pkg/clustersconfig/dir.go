@@ -37,7 +37,10 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 		return nil
 	}
 
-	config := &Config{Addons: make(map[string][]*Template)}
+	config := &Config{
+		Addons:        make(map[string][]*Template),
+		BootstrapPods: make(map[string][]*Template),
+	}
 
 	// load clusters
 	names, err := store.List("clusters")
@@ -127,7 +130,8 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 		}
 
 		if Debug {
-			log.Printf("group %q: config=%q static_pods=%q", group.Name, group.Config, group.StaticPods)
+			log.Printf("group %q: config=%q static_pods=%q",
+				group.Name, group.Config, group.StaticPods)
 		}
 
 		group.StaticPods, err = template(group.Rev(), "static-pods", group.StaticPods, &config.StaticPods)
@@ -189,6 +193,7 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 		return nil
 	}
 
+	// cluster addons
 	for _, cluster := range config.Clusters {
 		addonSet := cluster.Addons
 		if len(addonSet) == 0 {
@@ -205,6 +210,25 @@ func FromDir(dirPath, defaultsPath string) (*Config, error) {
 		}
 
 		config.Addons[addonSet] = templates
+	}
+
+	// cluster bootstrap pods
+	for _, cluster := range config.Clusters {
+		bpSet := cluster.BootstrapPods
+		if bpSet == "" {
+			continue
+		}
+
+		if _, ok := config.BootstrapPods[bpSet]; ok {
+			continue
+		}
+
+		templates := make([]*Template, 0)
+		if err = loadTemplates(cluster.Rev(), path.Join("bootstrap-pods", bpSet), &templates); err != nil {
+			return nil, err
+		}
+
+		config.BootstrapPods[bpSet] = templates
 	}
 
 	// load SSL configuration

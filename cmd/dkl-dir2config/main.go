@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -44,8 +42,9 @@ func main() {
 	// ----------------------------------------------------------------------
 	for _, cluster := range src.Clusters {
 		dst.Clusters = append(dst.Clusters, &localconfig.Cluster{
-			Name:   cluster.Name,
-			Addons: renderAddons(cluster),
+			Name:          cluster.Name,
+			Addons:        renderAddons(cluster),
+			BootstrapPods: renderBootstrapPodsDS(cluster),
 		})
 	}
 
@@ -103,35 +102,4 @@ func main() {
 		log.Fatal("failed to render output: ", err)
 	}
 
-}
-
-func renderAddons(cluster *clustersconfig.Cluster) string {
-	if len(cluster.Addons) == 0 {
-		return ""
-	}
-
-	addons := src.Addons[cluster.Addons]
-	if addons == nil {
-		log.Fatalf("cluster %q: no addons with name %q", cluster.Name, cluster.Addons)
-	}
-
-	clusterAsMap := asMap(cluster)
-	clusterAsMap["kubernetes_svc_ip"] = cluster.KubernetesSvcIP().String()
-	clusterAsMap["dns_svc_ip"] = cluster.DNSSvcIP().String()
-
-	buf := &bytes.Buffer{}
-
-	for _, addon := range addons {
-		fmt.Fprintf(buf, "---\n# addon: %s\n", addon.Name)
-		err := addon.Execute(buf, clusterAsMap, nil)
-
-		if err != nil {
-			log.Fatalf("cluster %q: addons %q: failed to render %q: %v",
-				cluster.Name, cluster.Addons, addon.Name, err)
-		}
-
-		fmt.Fprintln(buf)
-	}
-
-	return buf.String()
 }

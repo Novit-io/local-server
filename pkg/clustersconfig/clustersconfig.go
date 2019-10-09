@@ -12,14 +12,15 @@ import (
 )
 
 type Config struct {
-	Hosts        []*Host
-	Groups       []*Group
-	Clusters     []*Cluster
-	Configs      []*Template
-	StaticPods   []*Template `yaml:"static_pods"`
-	Addons       map[string][]*Template
-	SSLConfig    string         `yaml:"ssl_config"`
-	CertRequests []*CertRequest `yaml:"cert_requests"`
+	Hosts         []*Host
+	Groups        []*Group
+	Clusters      []*Cluster
+	Configs       []*Template
+	StaticPods    []*Template            `yaml:"static_pods"`
+	BootstrapPods map[string][]*Template `yaml:"bootstrap_pods"`
+	Addons        map[string][]*Template
+	SSLConfig     string         `yaml:"ssl_config"`
+	CertRequests  []*CertRequest `yaml:"cert_requests"`
 }
 
 func FromBytes(data []byte) (*Config, error) {
@@ -194,10 +195,11 @@ type Vars map[string]interface{}
 // Cluster represents a cluster of hosts, allowing for cluster-wide variables.
 type Cluster struct {
 	WithRev
-	Name    string
-	Domain  string
-	Addons  string
-	Subnets struct {
+	Name          string
+	Domain        string
+	Addons        string
+	BootstrapPods string `yaml:"bootstrap_pods"`
+	Subnets       struct {
 		Services string
 		Pods     string
 	}

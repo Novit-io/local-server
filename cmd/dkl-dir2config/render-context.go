@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"path"
 
 	yaml "gopkg.in/yaml.v2"
 
 	"novit.nc/direktil/local-server/pkg/clustersconfig"
+	"novit.nc/direktil/pkg/config"
 )
 
 type renderContext struct {
@@ -106,6 +108,30 @@ func (ctx *renderContext) Config() string {
 		}
 
 		return render("static pods", t)
+	}
+
+	extraFuncs["bootstrap_pods_files"] = func(dir string) (string, error) {
+		namePods := renderBootstrapPods(ctx.Cluster)
+
+		defs := make([]config.FileDef, 0)
+
+		for _, namePod := range namePods {
+			name := namePod.Namespace + "_" + namePod.Name
+
+			ba, err := yaml.Marshal(namePod.Pod)
+			if err != nil {
+				return "", fmt.Errorf("bootstrap pod %s: failed to render: %v", name, err)
+			}
+
+			defs = append(defs, config.FileDef{
+				Path:    path.Join(dir, name+".yaml"),
+				Mode:    0640,
+				Content: string(ba),
+			})
+		}
+
+		ba, err := yaml.Marshal(defs)
+		return string(ba), err
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))

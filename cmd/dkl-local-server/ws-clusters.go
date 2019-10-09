@@ -100,3 +100,18 @@ func wsClusterSetPassword(req *restful.Request, resp *restful.Response) {
 		wsError(resp, err)
 	}
 }
+
+func wsClusterBootstrapPods(req *restful.Request, resp *restful.Response) {
+	cluster := wsReadCluster(req, resp)
+	if cluster == nil {
+		return
+	}
+
+	if len(cluster.BootstrapPods) == 0 {
+		log.Printf("cluster %q has no bootstrap pods defined", cluster.Name)
+		wsNotFound(req, resp)
+		return
+	}
+
+	resp.Write([]byte(cluster.BootstrapPods))
+}
