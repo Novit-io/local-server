@@ -21,12 +21,13 @@ var (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	flag.Parse()
 
 	http.HandleFunc("/", handleHTTP)
 
 	log.Print("listening on ", *bind)
-	http.ListenAndServe(*bind, nil)
+	log.Fatal(http.ListenAndServe(*bind, nil))
 }
 
 func handleHTTP(w http.ResponseWriter, req *http.Request) {
@@ -37,12 +38,10 @@ func handleHTTP(w http.ResponseWriter, req *http.Request) {
 	defer log.Print(l, " done")
 
 	stat, err := os.Stat(filePath)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		writeErr(err, w)
 		return
-	}
-
-	if stat.Mode().IsDir() {
+	} else if err == nil && stat.Mode().IsDir() {
 		http.NotFound(w, req)
 		return
 	}
@@ -59,8 +58,51 @@ func handleHTTP(w http.ResponseWriter, req *http.Request) {
 		http.ServeFile(w, req, filePath)
 
 	case "POST":
-		// TODO upload
-		http.Error(w, "not implemented", http.StatusNotImplemented)
+		tmpOut := filepath.Join(filepath.Dir(filePath), "."+filepath.Base(filePath))
+
+		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+			writeErr(err, w)
+			return
+		}
+
+		out, err := os.Create(tmpOut)
+		if err != nil {
+			writeErr(err, w)
+			return
+		}
+
+		h := sha1.New()
+		mw := io.MultiWriter(out, h)
+
+		_, err = io.Copy(mw, req.Body)
+		out.Close()
+
+		if err != nil {
+			os.Remove(tmpOut)
+
+			writeErr(err, w)
+			return
+		}
+
+		sha1Hex := hex.EncodeToString(h.Sum(nil))
+		log.Print("upload SHA1: ", sha1Hex)
+
+		reqSHA1 := req.Header.Get("X-Content-SHA1")
+		if reqSHA1 != "" && reqSHA1 != sha1Hex {
+			err = fmt.Errorf("upload SHA1 does not match given SHA1: %s", reqSHA1)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error() + "\n"))
+			return
+		}
+
+		os.Rename(tmpOut, filePath)
+
+		if err := ioutil.WriteFile(filePath+".sha1", []byte(sha1Hex), 0644); err != nil {
+			writeErr(err, w)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
 
 	default:
 		http.NotFound(w, req)
@@ -75,7 +117,7 @@ func writeErr(err error, w http.ResponseWriter) {
 		return
 	}
 
-	log.Print("internal error: ", err)
+	log.Output(2, fmt.Sprint("internal error: ", err))
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte("Internal error\n"))
 }
