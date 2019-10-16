@@ -1,14 +1,27 @@
 package clustersconfig
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
 	yaml "gopkg.in/yaml.v2"
+)
+
+var (
+	templateDetailsDir = flag.String("template-details-dir",
+		filepath.Join(os.TempDir(), "dkl-dir2config", strconv.Itoa(os.Getpid())),
+		"write details of template execute in this dir")
+
+	templateID = 0
 )
 
 type Config struct {
@@ -158,6 +171,37 @@ func (t *Template) Execute(wr io.Writer, data interface{}, extraFuncs map[string
 			return err
 		}
 		t.parsedTemplate = tmpl
+	}
+
+	if *templateDetailsDir != "" {
+		templateID++
+
+		os.MkdirAll(*templateDetailsDir, 0700)
+		base := fmt.Sprintf("%s/%03d-", *templateDetailsDir, templateID)
+
+		log.Print("writing template details: ", base, "{in,data,out}")
+
+		if err := ioutil.WriteFile(base+"in", []byte(t.Template), 0600); err != nil {
+			return err
+		}
+
+		yamlBytes, err := yaml.Marshal(data)
+		if err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(base+"data", yamlBytes, 0600); err != nil {
+			return err
+		}
+
+		out, err := os.Create(base + "out")
+		if err != nil {
+			return err
+		}
+
+		defer out.Close()
+
+		wr = io.MultiWriter(wr, out)
 	}
 
 	return t.parsedTemplate.Execute(wr, data)
