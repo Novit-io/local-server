@@ -190,7 +190,10 @@ func renderBootstrapPodsDS(cluster *clustersconfig.Cluster) string {
 				"selector": map[string]interface{}{
 					"matchLabels": labels,
 				},
-				"template": pod,
+				"template": map[string]interface{}{
+					"metadata": pod["metadata"],
+					"spec":     pod["spec"],
+				},
 			},
 		})
 
