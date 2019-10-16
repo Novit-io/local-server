@@ -38,10 +38,10 @@ func clusterFuncs(clusterSpec *clustersconfig.Cluster) map[string]interface{} {
 			return fmt.Sprintf("{{ ca_dir %q %q }}", cluster, name), nil
 		},
 
-		"hosts_by_group": func(group string) (hosts []*clustersconfig.Host) {
+		"hosts_by_group": func(group string) (hosts []interface{}) {
 			for _, host := range src.Hosts {
 				if host.Group == group {
-					hosts = append(hosts, host)
+					hosts = append(hosts, asMap(host))
 				}
 			}
 
@@ -60,6 +60,8 @@ func renderClusterTemplates(cluster *clustersconfig.Cluster, setName string,
 	clusterAsMap["kubernetes_svc_ip"] = cluster.KubernetesSvcIP().String()
 	clusterAsMap["dns_svc_ip"] = cluster.DNSSvcIP().String()
 
+	funcs := clusterFuncs(cluster)
+
 	log.Print("rendering cluster templates with ", clusterAsMap)
 
 	buf := &bytes.Buffer{}
@@ -67,7 +69,7 @@ func renderClusterTemplates(cluster *clustersconfig.Cluster, setName string,
 	for _, t := range templates {
 		log.Print("- template: ", setName, ": ", t.Name)
 		fmt.Fprintf(buf, "---\n# %s: %s\n", setName, t.Name)
-		err := t.Execute(buf, clusterAsMap, clusterFuncs(cluster))
+		err := t.Execute(buf, clusterAsMap, funcs)
 
 		if err != nil {
 			log.Fatalf("cluster %q: %s: failed to render %q: %v",
