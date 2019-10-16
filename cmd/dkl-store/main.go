@@ -16,7 +16,7 @@ import (
 
 var (
 	bind        = flag.String("bind", ":8080", "Bind address")
-	uploadToken = flag.String("upload-token", "", "Upload token (not uploads allowed if empty)")
+	uploadToken = flag.String("upload-token", "", "Upload token (no uploads allowed if empty)")
 	storeDir    = flag.String("store-dir", "/srv/dkl-store", "Store directory")
 )
 
@@ -32,6 +32,10 @@ func main() {
 func handleHTTP(w http.ResponseWriter, req *http.Request) {
 	filePath := filepath.Join(*storeDir, req.URL.Path)
 
+	l := fmt.Sprintf("%s %s", req.Method, filePath)
+	log.Print(l)
+	defer log.Print(l, " done")
+
 	stat, err := os.Stat(filePath)
 	if err != nil {
 		writeErr(err, w)
@@ -42,10 +46,6 @@ func handleHTTP(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 		return
 	}
-
-	l := fmt.Sprintf("%s %s", req.Method, filePath)
-	log.Print(l)
-	defer log.Print(l, " done")
 
 	switch req.Method {
 	case "GET":
@@ -58,8 +58,9 @@ func handleHTTP(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("X-Content-SHA1", sha1Hex)
 		http.ServeFile(w, req, filePath)
 
-	//case "POST":
-	//	// TODO upload
+	case "POST":
+		// TODO upload
+		http.Error(w, "not implemented", http.StatusNotImplemented)
 
 	default:
 		http.NotFound(w, req)
