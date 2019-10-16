@@ -1,17 +1,5 @@
 # ------------------------------------------------------------------------
-from golang:1.12.4-alpine as build
-run apk add --update git
-
-env CGO_ENABLED 0
-arg GOPROXY
-
-workdir /src
-add go.sum go.mod ./
-run go mod download
-
-add . ./
-run go test ./...
-run go install ./cmd/...
+from mcluseau/golang-builder:1.13.1 as build
 
 # ------------------------------------------------------------------------
 from debian:stretch
