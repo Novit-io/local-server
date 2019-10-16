@@ -88,11 +88,15 @@ func handleHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Print("upload SHA1: ", sha1Hex)
 
 		reqSHA1 := req.Header.Get("X-Content-SHA1")
-		if reqSHA1 != "" && reqSHA1 != sha1Hex {
-			err = fmt.Errorf("upload SHA1 does not match given SHA1: %s", reqSHA1)
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error() + "\n"))
-			return
+		if reqSHA1 != "" {
+			if reqSHA1 != sha1Hex {
+				err = fmt.Errorf("upload SHA1 does not match given SHA1: %s", reqSHA1)
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(err.Error() + "\n"))
+				return
+			}
+
+			log.Print("upload SHA1 is as expected")
 		}
 
 		os.Rename(tmpOut, filePath)
