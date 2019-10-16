@@ -60,9 +60,12 @@ func renderClusterTemplates(cluster *clustersconfig.Cluster, setName string,
 	clusterAsMap["kubernetes_svc_ip"] = cluster.KubernetesSvcIP().String()
 	clusterAsMap["dns_svc_ip"] = cluster.DNSSvcIP().String()
 
+	log.Print("rendering cluster templates with ", clusterAsMap)
+
 	buf := &bytes.Buffer{}
 
 	for _, t := range templates {
+		log.Print("- template: ", setName, ": ", t.Name)
 		fmt.Fprintf(buf, "---\n# %s: %s\n", setName, t.Name)
 		err := t.Execute(buf, clusterAsMap, clusterFuncs(cluster))
 
