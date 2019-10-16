@@ -47,7 +47,7 @@ func handleHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	switch req.Method {
-	case "GET":
+	case "GET", "HEAD":
 		sha1Hex, err := hashOf(filePath)
 		if err != nil {
 			writeErr(err, w)

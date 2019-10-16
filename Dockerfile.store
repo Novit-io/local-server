@@ -1,20 +1,8 @@
 # ------------------------------------------------------------------------
-from golang:1.12.3-alpine as build
-run apk add --update git
-
-env CGO_ENABLED 0
-arg GOPROXY
-
-workdir /src
-add go.sum go.mod ./
-run go mod download
-
-add . ./
-run go test ./...
-run go install ./cmd/dkl-store
+from mcluseau/golang-builder:1.13.1 as build
 
 # ------------------------------------------------------------------------
-from alpine:3.9
+from alpine:3.10
 volume /srv/dkl-store
 entrypoint ["/bin/dkl-store"]
 copy --from=build /go/bin/ /bin/
