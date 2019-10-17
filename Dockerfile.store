@@ -1,8 +1,0 @@
-# ------------------------------------------------------------------------
-from mcluseau/golang-builder:1.13.1 as build
-
-# ------------------------------------------------------------------------
-from alpine:3.10
-volume /srv/dkl-store
-entrypoint ["/bin/dkl-store"]
-copy --from=build /go/bin/ /bin/
