@@ -20,9 +20,8 @@ fi
 VM=$1
 HOST=$2
 
-govc vm.power -off $NOVIT_VM_FOLDER/$VM || true
+govc vm.power -off "$NOVIT_VM_FOLDER/$VM" || true
 sleep 5
-curl localhost:7606/hosts/$HOST/boot.iso | govc datastore.upload - $NOVIT_ISO_FOLDER/$VM.iso
+curl localhost:7606/hosts/$HOST/boot.iso | govc datastore.upload - "$NOVIT_ISO_FOLDER/$VM.iso"
 sleep 5
-govc vm.power -on $NOVIT_VM_FOLDER/$VM
-
+govc vm.power -on "$NOVIT_VM_FOLDER/$VM"
