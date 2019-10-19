@@ -1,10 +1,11 @@
 # ------------------------------------------------------------------------
-from mcluseau/golang-builder:1.13.1 as build
+from mcluseau/golang-builder:1.13.3 as build
 
 # ------------------------------------------------------------------------
 from debian:stretch
 entrypoint ["/bin/dkl-local-server"]
 
+env _uncache 1
 run apt-get update \
  && apt-get install -y genisoimage gdisk dosfstools util-linux udev \
  && apt-get clean

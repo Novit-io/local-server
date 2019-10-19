@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"path"
+	"reflect"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -62,15 +63,44 @@ func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ct
 
 func mapMerge(target, source map[string]interface{}) {
 	for k, v := range source {
-		if tMap, targetIsMap := target[k].(map[string]interface{}); targetIsMap {
-			if sMap, sourceIsMap := v.(map[string]interface{}); sourceIsMap {
-				mapMerge(tMap, sMap)
+		target[k] = genericMerge(target[k], v)
+	}
+}
+
+func genericMerge(target, source interface{}) (result interface{}) {
+	srcV := reflect.ValueOf(source)
+	tgtV := reflect.ValueOf(target)
+
+	if srcV.Kind() == reflect.Map && tgtV.Kind() == reflect.Map {
+		// XXX maybe more specific later
+		result = map[interface{}]interface{}{}
+		resultV := reflect.ValueOf(result)
+
+		tgtIt := tgtV.MapRange()
+		for tgtIt.Next() {
+			sv := srcV.MapIndex(tgtIt.Key())
+			if sv.Kind() == 0 {
+				resultV.SetMapIndex(tgtIt.Key(), tgtIt.Value())
 				continue
 			}
+
+			merged := genericMerge(tgtIt.Value().Interface(), sv.Interface())
+			resultV.SetMapIndex(tgtIt.Key(), reflect.ValueOf(merged))
 		}
 
-		target[k] = v
+		srcIt := srcV.MapRange()
+		for srcIt.Next() {
+			if resultV.MapIndex(srcIt.Key()).Kind() != 0 {
+				continue // already done
+			}
+
+			resultV.SetMapIndex(srcIt.Key(), srcIt.Value())
+		}
+
+		return
 	}
+
+	return source
 }
 
 func (ctx *renderContext) Config() string {
