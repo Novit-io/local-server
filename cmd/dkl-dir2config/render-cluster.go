@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"path"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -62,14 +63,16 @@ func renderClusterTemplates(cluster *clustersconfig.Cluster, setName string,
 
 	funcs := clusterFuncs(cluster)
 
-	log.Print("rendering cluster templates with ", clusterAsMap)
+	log.Print("rendering cluster templates in ", setName, " with ", clusterAsMap)
 
 	buf := &bytes.Buffer{}
+
+	contextName := "cluster:" + cluster.Name
 
 	for _, t := range templates {
 		log.Print("- template: ", setName, ": ", t.Name)
 		fmt.Fprintf(buf, "---\n# %s: %s\n", setName, t.Name)
-		err := t.Execute(buf, clusterAsMap, funcs)
+		err := t.Execute(contextName, path.Join(setName, t.Name), buf, clusterAsMap, funcs)
 
 		if err != nil {
 			log.Fatalf("cluster %q: %s: failed to render %q: %v",
@@ -112,7 +115,7 @@ func renderBootstrapPods(cluster *clustersconfig.Cluster) (pods []namePod) {
 	}
 
 	// render bootstrap pods
-	parts := bytes.Split(renderClusterTemplates(cluster, "bootstrap pods", bootstrapPods), []byte("\n---\n"))
+	parts := bytes.Split(renderClusterTemplates(cluster, "bootstrap-pods", bootstrapPods), []byte("\n---\n"))
 	for _, part := range parts {
 		buf := bytes.NewBuffer(part)
 		dec := yaml.NewDecoder(buf)

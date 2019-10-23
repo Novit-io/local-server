@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -18,7 +17,7 @@ import (
 
 var (
 	templateDetailsDir = flag.String("template-details-dir",
-		filepath.Join(os.TempDir(), "dkl-dir2config", strconv.Itoa(os.Getpid())),
+		filepath.Join(os.TempDir(), "dkl-dir2config"),
 		"write details of template execute in this dir")
 
 	templateID = 0
@@ -151,7 +150,7 @@ type Template struct {
 	parsedTemplate *template.Template
 }
 
-func (t *Template) Execute(wr io.Writer, data interface{}, extraFuncs map[string]interface{}) error {
+func (t *Template) Execute(contextName, elementName string, wr io.Writer, data interface{}, extraFuncs map[string]interface{}) error {
 	if t.parsedTemplate == nil {
 		var templateFuncs = map[string]interface{}{
 			"indent": func(indent, s string) (indented string) {
@@ -176,9 +175,10 @@ func (t *Template) Execute(wr io.Writer, data interface{}, extraFuncs map[string
 	if *templateDetailsDir != "" {
 		templateID++
 
-		os.MkdirAll(*templateDetailsDir, 0700)
-		base := fmt.Sprintf("%s/%03d-", *templateDetailsDir, templateID)
+		base := filepath.Join(*templateDetailsDir, contextName, fmt.Sprintf("%s-%03d", elementName, templateID))
+		os.MkdirAll(base, 0700)
 
+		base += string(filepath.Separator)
 		log.Print("writing template details: ", base, "{in,data,out}")
 
 		if err := ioutil.WriteFile(base+"in", []byte(t.Template), 0600); err != nil {

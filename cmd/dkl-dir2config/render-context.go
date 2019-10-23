@@ -103,10 +103,25 @@ func genericMerge(target, source interface{}) (result interface{}) {
 	return source
 }
 
+func (ctx *renderContext) Name() string {
+	switch {
+	case ctx.Host != nil:
+		return "host:" + ctx.Host.Name
+	case ctx.Group != nil:
+		return "group:" + ctx.Group.Name
+	case ctx.Cluster != nil:
+		return "cluster:" + ctx.Cluster.Name
+	default:
+		return "unknown"
+	}
+}
+
 func (ctx *renderContext) Config() string {
 	if ctx.ConfigTemplate == nil {
 		log.Fatalf("no such config: %q", ctx.Group.Config)
 	}
+
+	ctxName := ctx.Name()
 
 	ctxMap := ctx.asMap()
 
@@ -114,7 +129,7 @@ func (ctx *renderContext) Config() string {
 
 	render := func(what string, t *clustersconfig.Template) (s string, err error) {
 		buf := &bytes.Buffer{}
-		err = t.Execute(buf, ctxMap, templateFuncs)
+		err = t.Execute(ctxName, what, buf, ctxMap, templateFuncs)
 		if err != nil {
 			log.Printf("host %s: failed to render %s [%q]: %v", ctx.Host.Name, what, t.Name, err)
 			return
@@ -137,7 +152,7 @@ func (ctx *renderContext) Config() string {
 			return "", fmt.Errorf("no static pods template named %q", name)
 		}
 
-		return render("static pods", t)
+		return render("static-pods", t)
 	}
 
 	extraFuncs["bootstrap_pods_files"] = func(dir string) (string, error) {
@@ -165,7 +180,7 @@ func (ctx *renderContext) Config() string {
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err := ctx.ConfigTemplate.Execute(buf, ctxMap, extraFuncs); err != nil {
+	if err := ctx.ConfigTemplate.Execute(ctxName, "config", buf, ctxMap, extraFuncs); err != nil {
 		log.Fatalf("failed to render config %q for host %q: %v", ctx.Group.Config, ctx.Host.Name, err)
 	}
 
@@ -180,7 +195,7 @@ func (ctx *renderContext) StaticPods() (ba []byte, err error) {
 	ctxMap := ctx.asMap()
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-	if err = ctx.StaticPodsTemplate.Execute(buf, ctxMap, ctx.templateFuncs(ctxMap)); err != nil {
+	if err = ctx.StaticPodsTemplate.Execute(ctx.Name(), "static-pods", buf, ctxMap, ctx.templateFuncs(ctxMap)); err != nil {
 		return
 	}
 
@@ -204,7 +219,7 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 		}
 
 		buf := &bytes.Buffer{}
-		err = req.Execute(buf, ctxMap, nil)
+		err = req.Execute(ctx.Name(), "req:"+name, buf, ctxMap, nil)
 		if err != nil {
 			return
 		}
