@@ -39,6 +39,20 @@ func clusterFuncs(clusterSpec *clustersconfig.Cluster) map[string]interface{} {
 			return fmt.Sprintf("{{ ca_dir %q %q }}", cluster, name), nil
 		},
 
+		"hosts_by_cluster": func(cluster string) (hosts []interface{}) {
+			for _, host := range src.Hosts {
+				if host.Cluster == cluster {
+					hosts = append(hosts, asMap(host))
+				}
+			}
+
+			if len(hosts) == 0 {
+				log.Printf("WARNING: no hosts in cluster %q", cluster)
+			}
+
+			return
+		},
+
 		"hosts_by_group": func(group string) (hosts []interface{}) {
 			for _, host := range src.Hosts {
 				if host.Group == group {
@@ -47,7 +61,7 @@ func clusterFuncs(clusterSpec *clustersconfig.Cluster) map[string]interface{} {
 			}
 
 			if len(hosts) == 0 {
-				log.Fatalf("no hosts in group %q", group)
+				log.Printf("WARNING: no hosts in group %q", group)
 			}
 
 			return
