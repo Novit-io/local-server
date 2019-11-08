@@ -195,7 +195,7 @@ func renderBootstrapPodsDS(cluster *clustersconfig.Cluster) string {
 		delete(md, "namespace")
 
 		err := enc.Encode(map[string]interface{}{
-			"apiVersion": "extensions/v1beta1",
+			"apiVersion": "apps/v1",
 			"kind":       "DaemonSet",
 			"metadata": map[string]interface{}{
 				"namespace": namePod.Namespace,
