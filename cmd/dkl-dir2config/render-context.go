@@ -257,6 +257,11 @@ func (ctx *renderContext) templateFuncs(ctxMap map[string]interface{}) map[strin
 			return getKeyCert(name, "tls_dir")
 		},
 
+		"ssh_host_keys": func(dir string) (s string) {
+			return fmt.Sprintf("{{ ssh_host_keys %q %q %q}}",
+				dir, cluster, ctx.Host.Name)
+		},
+
 		"hosts_of_group": func() (hosts []interface{}) {
 			hosts = make([]interface{}, 0)
 

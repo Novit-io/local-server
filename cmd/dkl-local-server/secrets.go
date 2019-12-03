@@ -26,6 +26,7 @@ import (
 
 var (
 	secretData *SecretData
+	DontSave   = false
 )
 
 type SecretData struct {
@@ -37,9 +38,10 @@ type SecretData struct {
 }
 
 type ClusterSecrets struct {
-	CAs       map[string]*CA
-	Tokens    map[string]string
-	Passwords map[string]string
+	CAs         map[string]*CA
+	Tokens      map[string]string
+	Passwords   map[string]string
+	SSHKeyPairs map[string][]SSHKeyPair
 }
 
 type CA struct {
@@ -92,6 +94,10 @@ func (sd *SecretData) Changed() bool {
 }
 
 func (sd *SecretData) Save() error {
+	if DontSave {
+		return nil
+	}
+
 	sd.l.Lock()
 	defer sd.l.Unlock()
 

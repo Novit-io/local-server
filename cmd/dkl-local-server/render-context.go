@@ -239,6 +239,33 @@ func (ctx *renderContext) templateFuncs() map[string]interface{} {
 				},
 			})
 		},
+
+		"ssh_host_keys": func(dir, cluster, host string) (s string, err error) {
+			pairs, err := secretData.SSHKeyPairs(cluster, host)
+			if err != nil {
+				return
+			}
+
+			files := make([]config.FileDef, 0, len(pairs)*2)
+
+			for _, pair := range pairs {
+				basePath := path.Join(dir, "ssh_host_"+pair.Type+"_key")
+				files = append(files, []config.FileDef{
+					{
+						Path:    basePath,
+						Mode:    0600,
+						Content: pair.Private,
+					},
+					{
+						Path:    basePath + ".pub",
+						Mode:    0644,
+						Content: pair.Public,
+					},
+				}...)
+			}
+
+			return asYaml(files)
+		},
 	}
 }
 
