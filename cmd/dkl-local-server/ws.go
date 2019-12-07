@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -124,7 +125,7 @@ func wsNotFound(req *restful.Request, resp *restful.Response) {
 }
 
 func wsError(resp *restful.Response, err error) {
-	log.Print("request failed: ", err)
+	log.Output(2, fmt.Sprint("request failed: ", err))
 	resp.WriteErrorString(
 		http.StatusInternalServerError,
 		http.StatusText(http.StatusInternalServerError))

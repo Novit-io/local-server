@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	restful "github.com/emicklei/go-restful"
-	"github.com/mcluseau/go-swagger-ui"
+	swaggerui "github.com/mcluseau/go-swagger-ui"
 	"novit.nc/direktil/pkg/cas"
 
 	"novit.nc/direktil/local-server/pkg/apiutils"
@@ -27,6 +27,8 @@ var (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	flag.Parse()
 
 	if *address == "" && *tlsAddress == "" {

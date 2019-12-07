@@ -9,7 +9,6 @@ require (
 	github.com/frankban/quicktest v1.5.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-openapi/spec v0.19.3 // indirect
-	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mcluseau/go-swagger-ui v0.0.0-20191019002626-fd9128c24a34
@@ -21,7 +20,7 @@ require (
 	gopkg.in/src-d/go-billy.v4 v4.3.2
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.2.4
-	k8s.io/apimachinery v0.0.0-20191017185446-6e68a40eebf9
+	k8s.io/apimachinery v0.0.0-20191203211716-adc6f4cd9e7d
 	novit.nc/direktil/pkg v0.0.0-20191009054056-6e432c2a06e6
 )
 

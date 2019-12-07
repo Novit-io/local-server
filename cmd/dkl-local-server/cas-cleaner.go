@@ -25,7 +25,7 @@ func casCleaner() {
 func cleanCAS() error {
 	cfg, err := readConfig()
 	if err != nil {
-		return err
+		return nil
 	}
 
 	activeTags := make([]string, len(cfg.Hosts))

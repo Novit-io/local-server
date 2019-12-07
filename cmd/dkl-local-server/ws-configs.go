@@ -35,8 +35,21 @@ func writeNewConfig(reader io.Reader) (err error) {
 		return
 	}
 
-	archivesPath := filepath.Join(*dataDir, "archives")
 	cfgPath := configFilePath()
+	in, err := os.Open(cfgPath)
+
+	if err == nil {
+		err = backupCurrentConfig(in)
+	} else if !os.IsNotExist(err) {
+		return
+	}
+
+	err = os.Rename(out.Name(), cfgPath)
+	return
+}
+
+func backupCurrentConfig(in io.ReadCloser) (err error) {
+	archivesPath := filepath.Join(*dataDir, "archives")
 
 	err = os.MkdirAll(archivesPath, 0700)
 	if err != nil {
@@ -52,11 +65,6 @@ func writeNewConfig(reader io.Reader) (err error) {
 
 	defer bck.Close()
 
-	in, err := os.Open(cfgPath)
-	if err != nil {
-		return
-	}
-
 	gz, err := gzip.NewWriterLevel(bck, 2)
 	if err != nil {
 		return
@@ -66,10 +74,5 @@ func writeNewConfig(reader io.Reader) (err error) {
 	gz.Close()
 	in.Close()
 
-	if err != nil {
-		return
-	}
-
-	err = os.Rename(out.Name(), cfgPath)
 	return
 }
