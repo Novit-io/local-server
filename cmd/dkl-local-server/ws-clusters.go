@@ -101,6 +101,23 @@ func wsClusterSetPassword(req *restful.Request, resp *restful.Response) {
 	}
 }
 
+func wsClusterToken(req *restful.Request, resp *restful.Response) {
+	cluster := wsReadCluster(req, resp)
+	if cluster == nil {
+		return
+	}
+
+	name := req.PathParameter("token-name")
+
+	token, err := secretData.Token(cluster.Name, name)
+	if err != nil {
+		wsError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(token)
+}
+
 func wsClusterBootstrapPods(req *restful.Request, resp *restful.Response) {
 	cluster := wsReadCluster(req, resp)
 	if cluster == nil {

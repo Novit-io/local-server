@@ -27,7 +27,8 @@ func (ws *wsHost) register(rws *restful.WebService, alterRB func(*restful.RouteB
 
 	for _, rb := range []*restful.RouteBuilder{
 		rws.GET(ws.prefix).To(ws.get).
-			Doc("Get the " + ws.hostDoc + "'s details"),
+			Doc("Get the "+ws.hostDoc+"'s details").
+			Returns(200, "OK", localconfig.Host{}),
 
 		// raw configuration
 		b("config").

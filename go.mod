@@ -21,7 +21,7 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/apimachinery v0.0.0-20191203211716-adc6f4cd9e7d
-	novit.nc/direktil/pkg v0.0.0-20191009054056-6e432c2a06e6
+	novit.nc/direktil/pkg v0.0.0-20191211161950-96b0448b84c2
 )
 
 go 1.13

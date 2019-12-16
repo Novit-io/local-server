@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"path"
@@ -14,6 +16,9 @@ import (
 )
 
 type renderContext struct {
+	Labels      map[string]string
+	Annotations map[string]string
+
 	Host               *clustersconfig.Host
 	Group              *clustersconfig.Group
 	Cluster            *clustersconfig.Cluster
@@ -47,9 +52,10 @@ func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ct
 		mapMerge(vars, oVars)
 	}
 
-	log.Print("vars: ", vars)
-
 	return &renderContext{
+		Labels:      mergeLabels(cluster.Labels, group.Labels, host.Labels),
+		Annotations: mergeLabels(cluster.Annotations, group.Annotations, host.Annotations),
+
 		Host:               host,
 		Group:              group,
 		Cluster:            cluster,
@@ -59,6 +65,18 @@ func newRenderContext(host *clustersconfig.Host, cfg *clustersconfig.Config) (ct
 
 		clusterConfig: cfg,
 	}, nil
+}
+
+func mergeLabels(sources ...map[string]string) map[string]string {
+	ret := map[string]string{}
+
+	for _, src := range sources {
+		for k, v := range src {
+			ret[k] = v
+		}
+	}
+
+	return ret
 }
 
 func mapMerge(target, source map[string]interface{}) {
@@ -177,6 +195,11 @@ func (ctx *renderContext) Config() string {
 
 		ba, err := yaml.Marshal(defs)
 		return string(ba), err
+	}
+
+	extraFuncs["machine_id"] = func() string {
+		ba := sha1.Sum([]byte(ctx.Cluster.Name + "/" + ctx.Host.Name)) // TODO: check semantics of machine-id
+		return hex.EncodeToString(ba[:])
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))

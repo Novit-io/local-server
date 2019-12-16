@@ -77,6 +77,12 @@ func main() {
 
 		dst.Hosts = append(dst.Hosts, &localconfig.Host{
 			Name: host.Name,
+
+			ClusterName: ctx.Cluster.Name,
+
+			Labels:      ctx.Labels,
+			Annotations: ctx.Annotations,
+
 			MACs: macs,
 			IPs:  ips,
 

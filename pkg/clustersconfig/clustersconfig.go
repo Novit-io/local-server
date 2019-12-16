@@ -210,7 +210,11 @@ func (t *Template) Execute(contextName, elementName string, wr io.Writer, data i
 // Host represents a host served by this server.
 type Host struct {
 	WithRev
-	Name    string
+
+	Name        string
+	Labels      map[string]string
+	Annotations map[string]string
+
 	MAC     string
 	IP      string
 	IPs     []string
@@ -222,7 +226,11 @@ type Host struct {
 // Group represents a group of hosts and provides their configuration.
 type Group struct {
 	WithRev
-	Name       string
+
+	Name        string
+	Labels      map[string]string
+	Annotations map[string]string
+
 	Master     bool
 	IPXE       string
 	Kernel     string
@@ -239,7 +247,11 @@ type Vars map[string]interface{}
 // Cluster represents a cluster of hosts, allowing for cluster-wide variables.
 type Cluster struct {
 	WithRev
-	Name          string
+
+	Name        string
+	Labels      map[string]string
+	Annotations map[string]string
+
 	Domain        string
 	Addons        string
 	BootstrapPods string `yaml:"bootstrap_pods"`

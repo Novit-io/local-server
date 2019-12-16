@@ -77,7 +77,7 @@ func renderClusterTemplates(cluster *clustersconfig.Cluster, setName string,
 
 	funcs := clusterFuncs(cluster)
 
-	log.Print("rendering cluster templates in ", setName, " with ", clusterAsMap)
+	log.Print("rendering cluster templates in ", setName)
 
 	buf := &bytes.Buffer{}
 

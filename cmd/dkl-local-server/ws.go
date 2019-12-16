@@ -48,6 +48,9 @@ func registerWS(rest *restful.Container) {
 	ws.Route(ws.PUT("/clusters/{cluster-name}/passwords/{password-name}").To(wsClusterSetPassword).
 		Doc("Set cluster's password"))
 
+	ws.Route(ws.GET("/clusters/{cluster-name}/tokens/{token-name}").To(wsClusterToken).
+		Doc("Get cluster's token"))
+
 	ws.Route(ws.GET("/hosts").To(wsListHosts).
 		Doc("List hosts"))
 
