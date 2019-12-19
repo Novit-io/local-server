@@ -11,7 +11,11 @@ import (
 	"os"
 	gopath "path"
 	"path/filepath"
+	"strconv"
 	"time"
+
+	"github.com/dustin/go-humanize"
+	"github.com/miolini/datacounter"
 )
 
 var (
@@ -49,6 +53,8 @@ func (ctx *renderContext) distFetch(path ...string) (outPath string, err error) 
 		return
 	}
 
+	length, _ := strconv.Atoi(resp.Header.Get("Content-Length"))
+
 	fOut, err := os.Create(filepath.Join(filepath.Dir(outPath), "._part_"+filepath.Base(outPath)))
 	if err != nil {
 		return
@@ -56,11 +62,12 @@ func (ctx *renderContext) distFetch(path ...string) (outPath string, err error) 
 
 	hash := sha1.New()
 
+	body := datacounter.NewReaderCounter(resp.Body)
 	out := io.MultiWriter(fOut, hash)
 
 	done := make(chan error, 1)
 	go func() {
-		_, err = io.Copy(out, resp.Body)
+		_, err = io.Copy(out, body)
 		fOut.Close()
 
 		if err != nil {
@@ -71,10 +78,27 @@ func (ctx *renderContext) distFetch(path ...string) (outPath string, err error) 
 		close(done)
 	}()
 
+	start := time.Now()
+
 wait:
 	select {
 	case <-time.After(10 * time.Second):
-		log.Print("still fetching ", subPath, "...")
+		status := ""
+		if length != 0 {
+			count := body.Count()
+			elapsedDuration := time.Since(start)
+
+			progress := float64(count) / float64(length)
+
+			elapsed := float64(elapsedDuration)
+			remaining := time.Duration(elapsed/progress - elapsed)
+
+			status = fmt.Sprintf(" (%.2f%%, ETA %v, %s/s)",
+				progress*100,
+				remaining.Truncate(time.Second),
+				humanize.Bytes(uint64(float64(count)/elapsedDuration.Seconds())))
+		}
+		log.Printf("still fetching %s%s...", subPath, status)
 		goto wait
 
 	case err = <-done:

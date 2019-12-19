@@ -1,10 +1,10 @@
 module novit.nc/direktil/local-server
 
 require (
-	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
 	github.com/cespare/xxhash v1.1.0
 	github.com/cloudflare/cfssl v0.0.0-20181213083726-b94e044bb51e
+	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/go-restful v2.10.0+incompatible
 	github.com/emicklei/go-restful-openapi v1.2.0
 	github.com/frankban/quicktest v1.5.0 // indirect
@@ -13,9 +13,10 @@ require (
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/mcluseau/go-swagger-ui v0.0.0-20191019002626-fd9128c24a34
+	github.com/miolini/datacounter v1.0.1
 	github.com/oklog/ulid v1.3.1
 	github.com/pierrec/lz4 v2.3.0+incompatible
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	golang.org/x/net v0.0.0-20191014212845-da9a3fd4c582 // indirect
 	golang.org/x/sys v0.0.0-20191018095205-727590c5006e // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.2
