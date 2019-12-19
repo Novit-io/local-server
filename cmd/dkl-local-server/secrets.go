@@ -13,6 +13,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/cespare/xxhash"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
@@ -31,6 +32,8 @@ var (
 
 type SecretData struct {
 	l sync.Mutex
+
+	prevHash uint64
 
 	clusters map[string]*ClusterSecrets
 	changed  bool
@@ -85,6 +88,8 @@ func loadSecretData(config *config.Config) (err error) {
 		return
 	}
 
+	sd.prevHash = xxhash.Sum64(ba)
+
 	secretData = sd
 	return
 }
@@ -93,20 +98,32 @@ func (sd *SecretData) Changed() bool {
 	return sd.changed
 }
 
-func (sd *SecretData) Save() error {
+func (sd *SecretData) Save() (err error) {
 	if DontSave {
-		return nil
+		return
 	}
 
 	sd.l.Lock()
 	defer sd.l.Unlock()
 
-	log.Info("Saving secret data")
 	ba, err := json.Marshal(sd.clusters)
 	if err != nil {
-		return err
+		return
 	}
-	return ioutil.WriteFile(secretDataPath(), ba, 0600)
+
+	h := xxhash.Sum64(ba)
+	if h == sd.prevHash {
+		return
+	}
+
+	log.Info("Saving secret data")
+	err = ioutil.WriteFile(secretDataPath(), ba, 0600)
+
+	if err == nil {
+		sd.prevHash = h
+	}
+
+	return
 }
 
 func newClusterSecrets() *ClusterSecrets {

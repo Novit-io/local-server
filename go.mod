@@ -3,6 +3,7 @@ module novit.nc/direktil/local-server
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
+	github.com/cespare/xxhash v1.1.0
 	github.com/cloudflare/cfssl v0.0.0-20181213083726-b94e044bb51e
 	github.com/emicklei/go-restful v2.10.0+incompatible
 	github.com/emicklei/go-restful-openapi v1.2.0
