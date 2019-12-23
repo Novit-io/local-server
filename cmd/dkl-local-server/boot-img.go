@@ -81,7 +81,10 @@ func setupBootImage(bootImg *os.File, ctx *renderContext) (err error) {
 		return
 	}
 
-	devb, err := exec.Command("losetup", "--find", "--show", "--partscan", bootImg.Name()).CombinedOutput()
+	log.Print("running losetup...")
+	cmd := exec.Command("losetup", "--find", "--show", "--partscan", bootImg.Name())
+	cmd.Stderr = os.Stderr
+	devb, err := cmd.Output()
 	if err != nil {
 		return
 	}
