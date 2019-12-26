@@ -59,7 +59,7 @@ func wsClusterAddons(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Write([]byte(cluster.Addons))
+	wsRender(resp, cluster.Addons, cluster)
 }
 
 func wsClusterPasswords(req *restful.Request, resp *restful.Response) {
@@ -70,6 +70,7 @@ func wsClusterPasswords(req *restful.Request, resp *restful.Response) {
 
 	resp.WriteEntity(secretData.Passwords(cluster.Name))
 }
+
 func wsClusterPassword(req *restful.Request, resp *restful.Response) {
 	cluster := wsReadCluster(req, resp)
 	if cluster == nil {
@@ -80,6 +81,7 @@ func wsClusterPassword(req *restful.Request, resp *restful.Response) {
 
 	resp.WriteEntity(secretData.Password(cluster.Name, name))
 }
+
 func wsClusterSetPassword(req *restful.Request, resp *restful.Response) {
 	cluster := wsReadCluster(req, resp)
 	if cluster == nil {
@@ -98,6 +100,7 @@ func wsClusterSetPassword(req *restful.Request, resp *restful.Response) {
 
 	if err := secretData.Save(); err != nil {
 		wsError(resp, err)
+		return
 	}
 }
 
@@ -130,5 +133,5 @@ func wsClusterBootstrapPods(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	resp.Write([]byte(cluster.BootstrapPods))
+	wsRender(resp, cluster.BootstrapPods, cluster)
 }

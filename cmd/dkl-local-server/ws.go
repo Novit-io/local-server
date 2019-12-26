@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"text/template"
 
 	"github.com/emicklei/go-restful"
 	"novit.nc/direktil/local-server/pkg/mime"
@@ -132,4 +133,18 @@ func wsError(resp *restful.Response, err error) {
 	resp.WriteErrorString(
 		http.StatusInternalServerError,
 		http.StatusText(http.StatusInternalServerError))
+}
+
+func wsRender(resp *restful.Response, tmplStr string, value interface{}) {
+	tmpl, err := template.New("wsRender").Funcs(templateFuncs).Parse(tmplStr)
+	if err != nil {
+		wsError(resp, err)
+		return
+	}
+
+	err = tmpl.Execute(resp, value)
+	if err != nil {
+		wsError(resp, err)
+		return
+	}
 }
