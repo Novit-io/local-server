@@ -57,7 +57,7 @@ insmod all_video
 set timeout=3
 
 menuentry "Direktil" {
-    linux  /vmlinuz direktil.boot=DEVNAME=sr0 direktil.boot.fs=iso9660
+    linux  /vmlinuz direktil.boot=DEVNAME=sr0 direktil.boot.fs=iso9660 `+ctx.CmdLine+`
     initrd /initrd
 }
 `), 0644)

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"text/template"
 
@@ -20,15 +21,23 @@ import (
 type renderContext struct {
 	Host      *localconfig.Host
 	SSLConfig string
+
+	// Linux kernel extra cmdline
+	CmdLine string `yaml:"-"`
 }
 
 func renderCtx(w http.ResponseWriter, r *http.Request, ctx *renderContext, what string,
 	create func(out io.Writer, ctx *renderContext) error) error {
-	log.Printf("sending %s for %q", what, ctx.Host.Name)
 
 	tag, err := ctx.Tag()
 	if err != nil {
 		return err
+	}
+
+	ctx.CmdLine = r.URL.Query().Get("cmdline")
+
+	if ctx.CmdLine != "" {
+		what = what + "?cmdline=" + url.QueryEscape(ctx.CmdLine)
 	}
 
 	// get it or create it
@@ -42,6 +51,7 @@ func renderCtx(w http.ResponseWriter, r *http.Request, ctx *renderContext, what 
 	}
 
 	// serve it
+	log.Printf("sending %s for %q", what, ctx.Host.Name)
 	http.ServeContent(w, r, what, meta.ModTime(), content)
 	return nil
 }

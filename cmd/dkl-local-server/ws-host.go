@@ -12,7 +12,11 @@ import (
 	"novit.nc/direktil/pkg/localconfig"
 )
 
-var trustXFF = flag.Bool("trust-xff", true, "Trust the X-Forwarded-For header")
+var (
+	trustXFF = flag.Bool("trust-xff", true, "Trust the X-Forwarded-For header")
+
+	cmdlineParam = restful.QueryParameter("cmdline", "Linux kernel cmdline addition")
+)
 
 type wsHost struct {
 	prefix  string
@@ -59,6 +63,7 @@ func (ws *wsHost) register(rws *restful.WebService, alterRB func(*restful.RouteB
 		// read-only ISO support
 		b("boot.iso").
 			Produces(mime.ISO).
+			Param(cmdlineParam).
 			Doc("Get the " + ws.hostDoc + "'s boot CD-ROM image"),
 
 		// netboot support
