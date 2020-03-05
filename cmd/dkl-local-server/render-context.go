@@ -12,11 +12,14 @@ import (
 	"text/template"
 
 	cfsslconfig "github.com/cloudflare/cfssl/config"
+	restful "github.com/emicklei/go-restful"
 	yaml "gopkg.in/yaml.v2"
 
 	"novit.nc/direktil/pkg/config"
 	"novit.nc/direktil/pkg/localconfig"
 )
+
+var cmdlineParam = restful.QueryParameter("cmdline", "Linux kernel cmdline addition")
 
 type renderContext struct {
 	Host      *localconfig.Host
@@ -34,7 +37,7 @@ func renderCtx(w http.ResponseWriter, r *http.Request, ctx *renderContext, what 
 		return err
 	}
 
-	ctx.CmdLine = r.URL.Query().Get("cmdline")
+	ctx.CmdLine = r.URL.Query().Get(cmdlineParam.Data().Name)
 
 	if ctx.CmdLine != "" {
 		what = what + "?cmdline=" + url.QueryEscape(ctx.CmdLine)

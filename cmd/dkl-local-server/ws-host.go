@@ -12,11 +12,7 @@ import (
 	"novit.nc/direktil/pkg/localconfig"
 )
 
-var (
-	trustXFF = flag.Bool("trust-xff", true, "Trust the X-Forwarded-For header")
-
-	cmdlineParam = restful.QueryParameter("cmdline", "Linux kernel cmdline addition")
-)
+var trustXFF = flag.Bool("trust-xff", true, "Trust the X-Forwarded-For header")
 
 type wsHost struct {
 	prefix  string
