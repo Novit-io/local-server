@@ -253,7 +253,7 @@ func (sd *SecretData) CA(cluster, name string) (ca *CA, err error) {
 	ca, ok := cs.CAs[name]
 	if ok {
 		checkErr := checkCertUsable(ca.Cert)
-		if checkErr == nil {
+		if checkErr != nil {
 			log.Infof("secret-data cluster %s: CA %s: regenerating certificate: %v", cluster, name, checkErr)
 
 			err = sd.RenewCACert(cluster, name)
