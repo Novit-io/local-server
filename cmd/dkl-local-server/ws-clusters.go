@@ -135,3 +135,39 @@ func wsClusterBootstrapPods(req *restful.Request, resp *restful.Response) {
 
 	wsRender(resp, cluster.BootstrapPods, cluster)
 }
+
+func wsClusterCACert(req *restful.Request, resp *restful.Response) {
+	cluster := wsReadCluster(req, resp)
+	if cluster == nil {
+		return
+	}
+
+	ca, err := secretData.CA(req.PathParameter("cluster"), req.PathParameter("ca-name"))
+	if err != nil {
+		wsError(resp, err)
+		return
+	}
+
+	resp.Write(ca.Cert)
+}
+
+func wsClusterSignedCert(req *restful.Request, resp *restful.Response) {
+	cluster := wsReadCluster(req, resp)
+	if cluster == nil {
+		return
+	}
+
+	ca, err := secretData.CA(req.PathParameter("cluster"), req.PathParameter("ca-name"))
+	if err != nil {
+		wsError(resp, err)
+		return
+	}
+
+	kc := ca.Signed[req.QueryParameter("name")]
+	if kc == nil {
+		wsNotFound(req, resp)
+		return
+	}
+
+	resp.Write(kc.Cert)
+}

@@ -49,6 +49,14 @@ func registerWS(rest *restful.Container) {
 	ws.Route(ws.PUT("/clusters/{cluster-name}/passwords/{password-name}").To(wsClusterSetPassword).
 		Doc("Set cluster's password"))
 
+	ws.Route(ws.GET("/clusters/{cluster-name}/ca/{ca-name}/certificate").To(wsClusterCACert).
+		Produces(mime.CACERT).
+		Doc("Get cluster CA's certificate"))
+	ws.Route(ws.GET("/clusters/{cluster-name}/ca/{ca-name}/signed").To(wsClusterSignedCert).
+		Produces(mime.CERT).
+		Param(ws.QueryParameter("name", "signed reference name").Required(true)).
+		Doc("Get cluster's certificate signed by the CA"))
+
 	ws.Route(ws.GET("/clusters/{cluster-name}/tokens/{token-name}").To(wsClusterToken).
 		Doc("Get cluster's token"))
 

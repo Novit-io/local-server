@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/base32"
 	"encoding/json"
 	"errors"
@@ -12,8 +14,10 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/cespare/xxhash"
+	"github.com/cloudflare/cfssl/certinfo"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
@@ -212,11 +216,49 @@ func (sd *SecretData) Token(cluster, name string) (token string, err error) {
 	return
 }
 
+func (sd *SecretData) RenewCACert(cluster, name string) (err error) {
+	cs := sd.cluster(cluster)
+
+	ca := cs.CAs[name]
+
+	var cert *x509.Certificate
+	cert, err = helpers.ParseCertificatePEM(ca.Cert)
+	if err != nil {
+		return
+	}
+
+	var signer crypto.Signer
+	signer, err = helpers.ParsePrivateKeyPEM(ca.Key)
+	if err != nil {
+		return
+	}
+
+	newCert, err := initca.RenewFromSigner(cert, signer)
+	if err != nil {
+		return
+	}
+
+	sd.l.Lock()
+	defer sd.l.Unlock()
+
+	cs.CAs[name].Cert = newCert
+	sd.changed = true
+
+	return
+}
+
 func (sd *SecretData) CA(cluster, name string) (ca *CA, err error) {
 	cs := sd.cluster(cluster)
 
 	ca, ok := cs.CAs[name]
 	if ok {
+		checkErr := checkCertUsable(ca.Cert)
+		if checkErr == nil {
+			log.Infof("secret-data cluster %s: CA %s: regenerating certificate: %v", cluster, name, checkErr)
+
+			err = sd.RenewCACert(cluster, name)
+		}
+
 		return
 	}
 
@@ -256,6 +298,22 @@ func (sd *SecretData) CA(cluster, name string) (ca *CA, err error) {
 	return
 }
 
+func checkCertUsable(certPEM []byte) error {
+	cert, err := certinfo.ParseCertificatePEM(certPEM)
+	if err != nil {
+		return err
+	}
+
+	certDuration := cert.NotAfter.Sub(cert.NotBefore)
+	delayBeforeRegen := certDuration / 3 // TODO allow configuration
+
+	if cert.NotAfter.Sub(time.Now()) < delayBeforeRegen {
+		return errors.New("too old")
+	}
+
+	return nil
+}
+
 func (sd *SecretData) KeyCert(cluster, caName, name, profile, label string, req *csr.CertificateRequest) (kc *KeyCert, err error) {
 	for idx, host := range req.Hosts {
 		if ip := net.ParseIP(host); ip != nil {
@@ -288,15 +346,21 @@ func (sd *SecretData) KeyCert(cluster, caName, name, profile, label string, req 
 		return
 	}
 
+	logPrefix := fmt.Sprintf("secret-data: cluster %s: CA %s:", cluster, caName)
+
 	rh := hash(req)
 	kc, ok := ca.Signed[name]
 	if ok && rh == kc.ReqHash {
-		return
+		err = checkCertUsable(kc.Cert)
+		if err == nil {
+			return
+		}
+		log.Infof("%s regenerating certificate: ", err)
+
 	} else if ok {
-		log.Infof("secret-data: cluster %s: CA %s: CSR changed for %s: hash=%q previous=%q",
-			cluster, caName, name, rh, kc.ReqHash)
+		log.Infof("%s CSR changed for %s: hash=%q previous=%q", name, rh, kc.ReqHash)
 	} else {
-		log.Infof("secret-data: cluster %s: CA %s: new CSR for %s", cluster, caName, name)
+		log.Infof("%s new CSR for %s", logPrefix, name)
 	}
 
 	sd.l.Lock()
