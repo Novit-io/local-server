@@ -2,8 +2,10 @@ package main
 
 import (
 	"log"
+	"sort"
 
 	restful "github.com/emicklei/go-restful"
+
 	"novit.nc/direktil/pkg/localconfig"
 )
 
@@ -136,15 +138,33 @@ func wsClusterBootstrapPods(req *restful.Request, resp *restful.Response) {
 	wsRender(resp, cluster.BootstrapPods, cluster)
 }
 
-func wsClusterCACert(req *restful.Request, resp *restful.Response) {
-	cluster := wsReadCluster(req, resp)
-	if cluster == nil {
+func wsClusterCAs(req *restful.Request, resp *restful.Response) {
+	cs := secretData.clusters[req.PathParameter("cluster-name")]
+	if cs == nil {
+		wsNotFound(req, resp)
 		return
 	}
 
-	ca, err := secretData.CA(req.PathParameter("cluster"), req.PathParameter("ca-name"))
-	if err != nil {
-		wsError(resp, err)
+	keys := make([]string, 0, len(cs.CAs))
+	for k := range cs.CAs {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	resp.WriteJson(keys, restful.MIME_JSON)
+}
+
+func wsClusterCACert(req *restful.Request, resp *restful.Response) {
+	cs := secretData.clusters[req.PathParameter("cluster-name")]
+	if cs == nil {
+		wsNotFound(req, resp)
+		return
+	}
+
+	ca := cs.CAs[req.PathParameter("ca-name")]
+	if ca == nil {
+		wsNotFound(req, resp)
 		return
 	}
 
@@ -152,18 +172,33 @@ func wsClusterCACert(req *restful.Request, resp *restful.Response) {
 }
 
 func wsClusterSignedCert(req *restful.Request, resp *restful.Response) {
-	cluster := wsReadCluster(req, resp)
-	if cluster == nil {
+	cs := secretData.clusters[req.PathParameter("cluster-name")]
+	if cs == nil {
+		wsNotFound(req, resp)
 		return
 	}
 
-	ca, err := secretData.CA(req.PathParameter("cluster"), req.PathParameter("ca-name"))
-	if err != nil {
-		wsError(resp, err)
+	ca := cs.CAs[req.PathParameter("ca-name")]
+	if ca == nil {
+		wsNotFound(req, resp)
 		return
 	}
 
-	kc := ca.Signed[req.QueryParameter("name")]
+	name := req.QueryParameter("name")
+
+	if name == "" {
+		keys := make([]string, 0, len(ca.Signed))
+		for k := range ca.Signed {
+			keys = append(keys, k)
+		}
+
+		sort.Strings(keys)
+
+		resp.WriteJson(keys, restful.MIME_JSON)
+		return
+	}
+
+	kc := ca.Signed[name]
 	if kc == nil {
 		wsNotFound(req, resp)
 		return

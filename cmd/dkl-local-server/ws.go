@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/emicklei/go-restful"
+
 	"novit.nc/direktil/local-server/pkg/mime"
 	"novit.nc/direktil/pkg/localconfig"
 )
@@ -49,6 +50,8 @@ func registerWS(rest *restful.Container) {
 	ws.Route(ws.PUT("/clusters/{cluster-name}/passwords/{password-name}").To(wsClusterSetPassword).
 		Doc("Set cluster's password"))
 
+	ws.Route(ws.GET("/clusters/{cluster-name}/ca").To(wsClusterCAs).
+		Doc("Get cluster CAs"))
 	ws.Route(ws.GET("/clusters/{cluster-name}/ca/{ca-name}/certificate").To(wsClusterCACert).
 		Produces(mime.CACERT).
 		Doc("Get cluster CA's certificate"))
@@ -71,6 +74,10 @@ func registerWS(rest *restful.Container) {
 		},
 	}).register(ws, func(rb *restful.RouteBuilder) {
 	})
+
+	ws.Route(ws.GET("/ssh-acls").To(wsSSH_ACL_List))
+	ws.Route(ws.GET("/ssh-acls/{acl-name}").To(wsSSH_ACL_Get))
+	ws.Route(ws.PUT("/ssh-acls/{acl-name}").To(wsSSH_ACL_Set))
 
 	rest.Add(ws)
 
