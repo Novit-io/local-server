@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------
-from mcluseau/golang-builder:1.15.1 as build
+from mcluseau/golang-builder:1.17.3 as build
 
 # ------------------------------------------------------------------------
 from debian:stretch
